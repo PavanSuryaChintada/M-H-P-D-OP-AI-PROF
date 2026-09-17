@@ -145,17 +145,51 @@ export const eventStatusEnum = pgEnum("event_status", [
   "FAILED",
 ]);
 
+// PRD §4 / doc 03 R1 — CREATED: just created, no config yet. CONFIGURED: has
+// operating config but hasn't cleared the readiness checklist. READY: passed
+// the checklist (see lib/hospitals/readiness.ts) and can run campaigns.
+export const hospitalStatusEnum = pgEnum("hospital_status", ["CREATED", "CONFIGURED", "READY"]);
+
 // ---------------------------------------------------------------------------
 // Core tenancy
 // ---------------------------------------------------------------------------
 export const hospitals = pgTable("hospitals", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  timezone: text("timezone").notNull(),
-  status: text("status").notNull().default("DRAFT"), // DRAFT | READY | ACTIVE — extended by doc 03
+  shortCode: text("short_code").notNull(),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  timezone: text("timezone").notNull(), // IANA, e.g. "America/New_York"
+  status: hospitalStatusEnum("status").notNull().default("CREATED"),
+  // Doc 03 R2 — operating config the scheduler and AI later read. Shape is
+  // validated by lib/hospitals/config-schema.ts (zod) on every write, not
+  // by a Postgres constraint — kept here as jsonb because doc 00's own
+  // Claude Code prompt asks for "hospital_config jsonb validated by zod",
+  // and because its shape (retry backoff arrays, per-weekday hours) doesn't
+  // map cleanly onto flat columns.
+  config: jsonb("config"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [uniqueIndex("hospitals_short_code_idx").on(t.shortCode)]);
+
+// Doc 03 R3 — ordered per-hospital escalation chain. `role` here is a
+// free-text title ("Charge Nurse", "On-call Physician"), distinct from the
+// 4-value RBAC role enum in user_hospital_roles.
+export const escalationContacts = pgTable("escalation_contacts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  orderIndex: integer("order_index").notNull(),
+  role: text("role").notNull(),
+  channel: notificationChannelEnum("channel").notNull(),
+  contactValue: text("contact_value").notNull(), // email address, phone number, etc.
+  ackTimeoutMinutes: integer("ack_timeout_minutes").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("escalation_contacts_hospital_idx").on(t.hospitalId),
+  uniqueIndex("escalation_contacts_hospital_order_idx").on(t.hospitalId, t.orderIndex),
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -609,4 +643,5 @@ export const TENANT_TABLE_NAMES = [
   "ai_usage",
   "hospital_capacity",
   "user_hospital_roles",
+  "escalation_contacts",
 ] as const;

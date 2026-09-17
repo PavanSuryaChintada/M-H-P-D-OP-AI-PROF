@@ -13,6 +13,12 @@ export type Action =
   // Membership itself is already gated by resolveTenantContext(); this only
   // decides whether a resolved role may read hospital metadata.
   | "hospital:manage_users"
+  | "hospital:configure" // doc 03 R1/R2 — operating config, escalation
+  // contacts, readiness/status changes. Same PA-only scope as
+  // hospital:create per doc 03's own Claude Code prompt ("CRUD for
+  // hospitals, restricted to PLATFORM_ADMIN"), kept as a separate action
+  // rather than reusing hospital:create so a PATCH isn't gated by an
+  // action named for POST.
   | "discharge:upload"
   | "protocol:manage"
   | "campaign:manage" // create / start / pause
@@ -51,6 +57,12 @@ const MATRIX: Record<Action, Record<Role, Grant>> = {
     HOSPITAL_ADMIN: true,
     CAMPAIGN_MANAGER: true,
     CLINICAL_REVIEWER: true,
+  },
+  "hospital:configure": {
+    PLATFORM_ADMIN: true,
+    HOSPITAL_ADMIN: false,
+    CAMPAIGN_MANAGER: false,
+    CLINICAL_REVIEWER: false,
   },
   "hospital:manage_users": {
     PLATFORM_ADMIN: true,

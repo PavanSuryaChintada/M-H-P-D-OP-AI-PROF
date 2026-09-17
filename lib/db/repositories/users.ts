@@ -1,7 +1,7 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../client";
 import { users, userHospitalRoles } from "../schema";
-import { withTenant, type Role } from "../tenant";
+import { withTenant, type Role, type TenantContext } from "../tenant";
 
 // users/user_hospital_roles sit at the auth bootstrap boundary: we need to
 // look up which hospitals a user belongs to *before* a hospital context
@@ -58,5 +58,18 @@ export async function assignHospitalRole(input: { userId: string; hospitalId: st
   return withTenant({ hospitalId: input.hospitalId, userId: input.userId, role: input.role }, async (tx) => {
     const [row] = await tx.insert(userHospitalRoles).values(input).returning();
     return row;
+  });
+}
+
+/** Doc 03 R5 readiness gate — "≥1 admin". ctx is typically a PLATFORM_ADMIN context opened for this specific hospitalId (see resolvePlatformAdminAccess-style construction), not a membership row of its own. */
+export async function countHospitalAdmins(ctx: TenantContext): Promise<number> {
+  return withTenant(ctx, async (tx) => {
+    const rows = await tx
+      .select({ id: userHospitalRoles.id })
+      .from(userHospitalRoles)
+      .where(
+        and(eq(userHospitalRoles.hospitalId, ctx.hospitalId), eq(userHospitalRoles.role, "HOSPITAL_ADMIN")),
+      );
+    return rows.length;
   });
 }

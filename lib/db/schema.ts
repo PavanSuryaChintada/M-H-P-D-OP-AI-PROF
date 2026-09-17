@@ -162,6 +162,11 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   displayName: text("display_name").notNull(),
   authProviderId: text("auth_provider_id"), // Supabase Auth user id
+  // PLATFORM_ADMIN is hospital-independent by definition (PRD §3 — manages
+  // hospital tenants, sees aggregates across all of them), so it can't live
+  // in user_hospital_roles the way the other three roles do. A user can
+  // hold this flag AND separately hold a normal per-hospital role.
+  isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex("users_email_idx").on(t.email),

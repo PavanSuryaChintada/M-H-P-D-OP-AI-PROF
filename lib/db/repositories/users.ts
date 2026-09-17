@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../client";
 import { users, userHospitalRoles } from "../schema";
-import type { Role } from "../tenant";
+import { withTenant, type Role } from "../tenant";
 
 // users/user_hospital_roles sit at the auth bootstrap boundary: we need to
 // look up which hospitals a user belongs to *before* a hospital context
@@ -15,7 +15,17 @@ export async function findUserByAuthProviderId(authProviderId: string) {
   return row ?? null;
 }
 
-export async function createUser(input: { email: string; displayName: string; authProviderId?: string }) {
+export async function findUserByEmail(email: string) {
+  const [row] = await db.select().from(users).where(eq(users.email, email));
+  return row ?? null;
+}
+
+export async function createUser(input: {
+  email: string;
+  displayName: string;
+  authProviderId?: string;
+  isPlatformAdmin?: boolean;
+}) {
   const [row] = await db.insert(users).values(input).returning();
   return row;
 }
@@ -34,5 +44,19 @@ export async function getRolesForUser(userId: string): Promise<HospitalRole[]> {
       .from(userHospitalRoles)
       .where(eq(userHospitalRoles.userId, userId));
     return rows;
+  });
+}
+
+/**
+ * Grants userId a role at hospitalId. Only used from privileged, non-request
+ * paths (seed scripts; doc 03's hospital-admin-bootstrap flow) — there is no
+ * route handler exposing this directly, since a normal caller assigning a
+ * role should already hold hospital:manage_users at that hospital, checked
+ * by the route guard before this is ever reached.
+ */
+export async function assignHospitalRole(input: { userId: string; hospitalId: string; role: Role }) {
+  return withTenant({ hospitalId: input.hospitalId, userId: input.userId, role: input.role }, async (tx) => {
+    const [row] = await tx.insert(userHospitalRoles).values(input).returning();
+    return row;
   });
 }

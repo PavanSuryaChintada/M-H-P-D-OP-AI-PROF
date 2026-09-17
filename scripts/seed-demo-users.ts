@@ -27,7 +27,11 @@ const DEMO_ACCOUNTS: { email: string; displayName: string; role: Role | "PLATFOR
 async function main() {
   const admin = createSupabaseAdminClient();
 
-  const hospital = await createHospital({ name: "Demo General Hospital", timezone: "Asia/Kolkata" });
+  const hospital = await createHospital({
+    name: "Demo General Hospital",
+    shortCode: "DEMO",
+    timezone: "Asia/Kolkata",
+  });
   console.log(`Seeded hospital: ${hospital.name} (${hospital.id})`);
 
   for (const account of DEMO_ACCOUNTS) {

@@ -1,3 +1,32 @@
+# Multi-Hospital Post-Discharge Outreach Platform
+
+AI-powered patient follow-up, clinical triage, and hospital outreach operations platform.
+
+## Demo credentials
+
+Seeded via `npm run seed:demo-users` (needs `SUPABASE_SERVICE_ROLE_KEY` in `.env`). Password is the same for all four:
+
+| Role | Email | Password |
+|---|---|---|
+| Platform Admin | `platform-admin@demo.mhpd.local` | `Demo1234!` |
+| Hospital Admin | `hospital-admin@demo.mhpd.local` | `Demo1234!` |
+| Campaign Manager | `campaign-manager@demo.mhpd.local` | `Demo1234!` |
+| Clinical Reviewer | `clinical-reviewer@demo.mhpd.local` | `Demo1234!` |
+
+Hospital Admin, Campaign Manager and Clinical Reviewer are all scoped to the seeded "Demo General Hospital"; Platform Admin is not hospital-scoped (PRD §3).
+
+These are prototype-only demo accounts on a non-production Supabase project — not real patient data, not a production credential.
+
+## Setup
+
+1. `npm install`
+2. Copy `.env.example` to `.env` and fill in your Supabase project's connection details (see the comments in that file for the IPv4-pooler gotcha on new Supabase projects).
+3. `npm run db:migrate` then `npm run db:rls` (applies `lib/db/rls.sql` — reads the `app_user` password from `DATABASE_URL_POOLED`).
+4. `npm run seed:demo-users`
+5. `npm test`, `npm run dev`
+
+---
+
 # Spec Pack — Multi-Hospital Post-Discharge Outreach Platform
 
 26 segmented specs for a 3–4 day solo prototype. Each is self-contained and ends with a copy-paste Claude Code prompt.

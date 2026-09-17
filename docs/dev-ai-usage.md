@@ -4,6 +4,26 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-17 (same day, later still still) — Doc 03: hospital onboarding & configuration
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Extended `hospitals` (short code, contact fields, address, a `hospital_status` enum CREATED→CONFIGURED→READY replacing doc 01's placeholder text status, and a `config jsonb` column) and added `escalation_contacts` — migrated live, including hand-editing the generated migration since existing rows (some permanently un-deletable by design — see doc 01/02 entries below) had the old `status='DRAFT'` value and no `short_code`; the blind enum cast and NOT NULL constraint drizzle-kit generated would have failed against real data, not just an empty table.
+- Caught my own gap before applying RLS: added `escalation_contacts` to the schema but initially forgot to add it to `rls.sql`'s tenant-table list, which would have hit the exact Supabase auto-enables-RLS-with-no-policy trap documented in doc 01/02's entries again. Fixed before running anything against it.
+- Built `lib/hospitals/timezone.ts` (`Intl.DateTimeFormat`-based local time conversion — no date library needed, Node's ICU already carries the IANA tz database), `calling-hours.ts` (`isWithinCallingHours`), `config-schema.ts` (zod-validated operating config), and `readiness.ts` (the R5 checklist, always returns the full missing-list, never a bare boolean).
+- Repositories: extended `hospitals.ts`; added `escalation-contacts.ts`, `protocols.ts` (minimal — just enough for the readiness count, full protocol management is doc 11), `hospital-capacity.ts` (keeps `hospital_capacity.max_concurrent_calls` in sync with config, since that's what the doc 06/07 scheduler will actually read).
+- 5 API routes (create/read hospital, PATCH config, escalation contacts CRUD, readiness, mark-ready) — all PLATFORM_ADMIN-gated per doc 03's own prompt ("CRUD for hospitals, restricted to PLATFORM_ADMIN"). Added `hospital:configure` to the permission matrix rather than overloading `hospital:create` for a PATCH.
+- A minimal but functional admin UI (`/login`, `/admin/hospitals`, `/admin/hospitals/[id]`) — plain fetch + useState, no component library (none is in the stack). The config editor is a raw-JSON textarea pre-filled with a valid template rather than ~15 individual form fields for every nested config key; a prototype-scoped simplification, not a stub — the zod schema is still what actually validates it server-side.
+- Tests: `calling-hours.test.ts` (includes a real DST spring-forward and fall-back transition test — caught my own arithmetic error in the test itself before trusting it: I had the offset direction backwards in one assertion), `hospital-config.test.ts` (schema edge cases), `readiness.test.ts` (live DB, walks the checklist from empty to everything-but-a-protocol).
+- Seed scripts: `seed-demo-hospitals.ts` — the exact 3 from doc 03's prompt (Northside General/America/New_York/10, Harbour Clinic/Europe/Stockholm/3, Rural Health Post/Asia/Kolkata/1). Deliberately left at CONFIGURED, not READY — faking a protocol row just to flip a status flag would misrepresent what's actually built; doc 11 doesn't exist yet, so "missing a protocol" is the honest, correct readiness result for all three right now.
+
+**A real debugging detour worth recording:** the test suite intermittently hung for 30-60s+ on `beforeAll` hooks after these changes. Chased it through: (1) suspected connection-pool exhaustion from parallel test files → disabled `fileParallelism`, didn't fully fix it; (2) wrote throwaway diagnostic scripts using `tsx -e "<inline code>"` that themselves hung on trivial code with no DB involved at all — that was tooling noise, `tsx -e` appears broken in this environment independent of anything in this project; (3) once diagnosed properly with an actual `.ts` file, confirmed the real cause: this network has several seconds of round-trip latency to the Supabase pooler (a raw `select 1` took 3.5-8.4s across repeated tries) — not a hang, just slow, and the original 10s default timeout wasn't enough for a `beforeAll` doing several sequential writes. Fixed by raising Vitest's timeouts to real-network-appropriate values and parallelizing independent setup calls in `rbac.test.ts` with `Promise.all`. Separately, found and fixed two actual test bugs the slower runs surfaced: hardcoded `shortCode` values collided with permanently-undeletable leftover rows from earlier runs (needed a per-run unique suffix, same pattern `readiness.test.ts` already used correctly), and two `afterAll` hooks would crash on `undefined.id` if their own `beforeAll` had failed first, masking the real error.
+
+**Still open:** doc 03's config UI is a JSON textarea, not per-field controls (see above) — a reasonable prototype simplification, not a gap I'd call hidden. Protocol upload (doc 11) is what's actually blocking these hospitals from reaching READY.
+
+---
+
 ## 2026-09-17 (same day, later still) — Doc 02 finished: Supabase Auth, route guard, demo users, RBAC + injection tests
 
 **Tool:** Claude Code (Sonnet 5).

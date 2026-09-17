@@ -7,6 +7,11 @@ export type { Role };
 
 export type Action =
   | "hospital:create"
+  | "hospital:read" // not in the PRD §3 table verbatim — every role that
+  // resolves a TenantContext at all needs to read that hospital's basic
+  // info, so this exists as necessary plumbing rather than a new feature.
+  // Membership itself is already gated by resolveTenantContext(); this only
+  // decides whether a resolved role may read hospital metadata.
   | "hospital:manage_users"
   | "discharge:upload"
   | "protocol:manage"
@@ -40,6 +45,12 @@ const MATRIX: Record<Action, Record<Role, Grant>> = {
     HOSPITAL_ADMIN: false,
     CAMPAIGN_MANAGER: false,
     CLINICAL_REVIEWER: false,
+  },
+  "hospital:read": {
+    PLATFORM_ADMIN: true,
+    HOSPITAL_ADMIN: true,
+    CAMPAIGN_MANAGER: true,
+    CLINICAL_REVIEWER: true,
   },
   "hospital:manage_users": {
     PLATFORM_ADMIN: true,

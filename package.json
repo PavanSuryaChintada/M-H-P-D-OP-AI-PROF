@@ -11,6 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:rls": "tsx scripts/apply-rls.ts",
+    "seed:demo-users": "tsx scripts/seed-demo-users.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -20,7 +22,9 @@
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9",
     "zod": "^4.6.5",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "@supabase/supabase-js": "^2.116.0",
+    "@supabase/ssr": "^0.12.7"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -1,6 +1,12 @@
 // Doc 01 R2.3: "A lint/test that fails CI if any db.select() is called
 // outside a repository." Static check, no database needed — runs on every
 // commit, unlike tests/tenancy.test.ts which needs a live Postgres.
+//
+// Also catches tx.select/insert/update/delete(, not just db.* — the withTenant()
+// callback parameter is conventionally named `tx` everywhere in this codebase,
+// and a query issued on it from outside a repository bypasses this check just
+// as much as a raw `db.*` call would (found while wiring doc 02's Platform
+// Admin audited-access path — it would have slipped through undetected).
 
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -9,7 +15,7 @@ import { join, relative } from "node:path";
 const ROOT = join(__dirname, "..");
 const SCAN_DIRS = ["app", "lib", "worker", "sim", "eval"];
 const ALLOWED_DIR = join("lib", "db", "repositories");
-const QUERY_CALL = /\bdb\.(select|insert|update|delete)\s*\(/;
+const QUERY_CALL = /\b(?:db|tx)\.(select|insert|update|delete)\s*\(/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

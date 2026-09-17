@@ -4,6 +4,26 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-17 (same day, later still) — Doc 02 finished: Supabase Auth, route guard, demo users, RBAC + injection tests
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Found and fixed a real gap in doc 01's schema: `PLATFORM_ADMIN` is hospital-independent (manages all hospitals), but the schema only stored roles per-hospital via `user_hospital_roles`. Added `users.is_platform_admin boolean`, migrated it live.
+- Built the Supabase Auth wiring: `lib/supabase/{server,client,admin}.ts` (SSR/browser/admin clients), `lib/auth/session.ts` (`getCurrentAppUser`, `resolveTenantContext` — cross-tenant → `NoHospitalAccessError`/404, and `resolvePlatformAdminAccess` — the audited PA-reads-one-hospital's-data path from doc 02 R3, which writes to `audit_log` via a proper repository call, not a direct query), and `lib/auth/guard.ts` (`guard()` for hospital-scoped actions, `guardPlatformAdmin()` for global ones like `hospital:create`; maps to 401/403/404 per the doc's own acceptance criteria — cross-tenant is 404, never 403, so existence doesn't leak).
+- Added `middleware.ts` — the standard Supabase SSR session-refresh pattern; without it, Server Components can't write cookies themselves and sessions would silently go stale.
+- Wired 3 demonstration API routes (`POST /api/hospitals`, `GET /api/hospitals/[id]`, `POST .../escalations/[id]`) — enough to exercise the guard chain end-to-end, not full business logic (that's docs 03/17).
+- Added `hospital:read` to the permission matrix — not in the PRD §3 table verbatim; flagging it as necessary plumbing (every resolved role needs to read its own hospital's metadata) rather than a silent scope addition.
+- **Caught my own mistake before it shipped:** almost called `tx.insert(auditLog)` directly inside `lib/auth/session.ts` for the PA audit-write, which would have violated doc 01 R2.3 (all queries through `lib/db/repositories/`) — the static check didn't catch it because it only matched `db.*`, not `tx.*`. Fixed by adding `lib/db/repositories/audit.ts` and *also* tightening `tests/architecture.test.ts`'s regex to catch `tx.*` too, closing the loophole for future code, not just this one call site.
+- Wrote `tests/rbac.test.ts` (mocks only the Supabase Auth boundary — `getCurrentAppUser`, `resolveTenantContext`, the permission matrix, and the DB all run for real against live seeded fixtures) and `tests/prompt-injection.test.ts`, scoped honestly: verifies `wrapUntrusted()`'s delimiting and that `UNTRUSTED_CONTENT_NOTICE` names the classic attack, but does NOT claim to test "triage output is unaffected" — no triage agent exists yet (doc 12/13), so that claim would be fabricated. Documented the real limitation: a forged closing delimiter embedded in patient text does produce a second, earlier-looking close marker in the raw string; the system-prompt notice is what has to carry the actual defense, not delimiter unforgeability.
+- **Found and fixed a genuine Postgres RLS bug** via the RBAC tests: `current_setting('app.hospital_id', true)` returns `''` (empty string), not `NULL`, once that custom GUC has been `SET LOCAL`-scoped at least once on a connection and then reverted — so a transaction that deliberately leaves it unset (like `getRolesForUser`, by design, since it runs before a hospital context exists) hit `invalid input syntax for type uuid: ''` on every RLS-protected table. Fixed by adding `app_hospital_id()`/`app_user_id()` SQL helper functions to `rls.sql` that `nullif(...,'')` before casting, used everywhere instead of the raw expression.
+- Wrote `scripts/seed-demo-users.ts` — creates one demo hospital + 4 pre-confirmed demo accounts (Admin API, so no email-confirmation wait). **Not yet run against the live project — needs `SUPABASE_SERVICE_ROLE_KEY`, which hasn't been provided.**
+- Full suite: 20/20 tests passing against the live database (`tests/architecture.test.ts`, `tests/tenancy.test.ts`, `tests/rbac.test.ts`, `tests/prompt-injection.test.ts`). `tsc --noEmit` and `eslint` clean.
+
+**Still open:** run `seed-demo-users.ts` once the service role key is available; a real login page (deferred — doc 02's own deliverable list doesn't ask for one, only session resolution + seeded accounts).
+
+---
+
 ## 2026-09-17 — Scaffold + doc 01 (data model & tenancy) + doc 02 partial (RBAC pieces)
 
 **Tool:** Claude Code (Sonnet 5).

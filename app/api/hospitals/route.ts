@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { guardPlatformAdmin } from "@/lib/auth/guard";
-import { createHospital } from "@/lib/db/repositories/hospitals";
-import { z } from "zod";
-
-const CreateHospitalSchema = z.object({
-  name: z.string().min(1),
-  timezone: z.string().min(1),
-});
+import { createHospital, listHospitals } from "@/lib/db/repositories/hospitals";
+import { writeAuditLog } from "@/lib/db/repositories/audit";
+import { CreateHospitalSchema } from "@/lib/hospitals/config-schema";
 
 // PLATFORM_ADMIN only — not scoped to any hospital (there isn't one yet).
 export async function POST(request: NextRequest) {
@@ -20,5 +16,18 @@ export async function POST(request: NextRequest) {
   }
 
   const hospital = await createHospital(parsed.data);
+  await writeAuditLog(
+    { hospitalId: hospital.id, userId: gate.id, role: "PLATFORM_ADMIN" },
+    { action: "hospital.created", resourceType: "hospital", resourceId: hospital.id },
+  );
+
   return NextResponse.json(hospital, { status: 201 });
+}
+
+export async function GET() {
+  const gate = await guardPlatformAdmin("hospital:read");
+  if (gate instanceof Response) return gate;
+
+  const hospitalList = await listHospitals();
+  return NextResponse.json(hospitalList);
 }

@@ -35,6 +35,28 @@ grant select, insert, update on all tables in schema public to app_user;
 grant usage, select on all sequences in schema public to app_user;
 
 -- ---------------------------------------------------------------------------
+-- 1a. GUC accessor helpers — every policy below uses these instead of a raw
+--     current_setting(...)::uuid. Reason: once a custom GUC like
+--     app.hospital_id has been SET LOCAL at least once on a given backend
+--     connection, current_setting(name, true) returns '' (empty string) —
+--     not NULL — once that LOCAL scope ends (e.g. after COMMIT), because
+--     Postgres creates a placeholder for the name on first use. A bare
+--     ''::uuid cast then throws "invalid input syntax for type uuid",
+--     which surfaces as a hard failure the first time any transaction
+--     deliberately leaves app.hospital_id unset on a connection that
+--     previously had it set (found via tests/rbac.test.ts, where
+--     getRolesForUser() intentionally sets only app.user_id). nullif(...,'')
+--     turns that '' back into a real NULL before the cast.
+-- ---------------------------------------------------------------------------
+create or replace function app_hospital_id() returns uuid as $$
+  select nullif(current_setting('app.hospital_id', true), '')::uuid;
+$$ language sql stable;
+
+create or replace function app_user_id() returns uuid as $$
+  select nullif(current_setting('app.user_id', true), '')::uuid;
+$$ language sql stable;
+
+-- ---------------------------------------------------------------------------
 -- 1b. hospitals and users — Supabase auto-enables RLS on every new table in
 --     `public` by default (a security-by-default measure), which leaves
 --     these two with RLS on and zero policies: an accidental deny-all, not
@@ -72,8 +94,8 @@ begin
     execute format('drop policy if exists tenant_isolation on %I', t);
     execute format(
       $p$create policy tenant_isolation on %I
-         using (hospital_id = current_setting('app.hospital_id', true)::uuid)
-         with check (hospital_id = current_setting('app.hospital_id', true)::uuid)$p$,
+         using (hospital_id = app_hospital_id())
+         with check (hospital_id = app_hospital_id())$p$,
       t
     );
   end loop;
@@ -93,19 +115,18 @@ alter table user_hospital_roles force row level security;
 drop policy if exists self_read on user_hospital_roles;
 create policy self_read on user_hospital_roles
   for select
-  using (user_id = current_setting('app.user_id', true)::uuid
-         or hospital_id = current_setting('app.hospital_id', true)::uuid);
+  using (user_id = app_user_id() or hospital_id = app_hospital_id());
 
 drop policy if exists tenant_write on user_hospital_roles;
 create policy tenant_write on user_hospital_roles
   for insert
-  with check (hospital_id = current_setting('app.hospital_id', true)::uuid);
+  with check (hospital_id = app_hospital_id());
 
 drop policy if exists tenant_update on user_hospital_roles;
 create policy tenant_update on user_hospital_roles
   for update
-  using (hospital_id = current_setting('app.hospital_id', true)::uuid)
-  with check (hospital_id = current_setting('app.hospital_id', true)::uuid);
+  using (hospital_id = app_hospital_id())
+  with check (hospital_id = app_hospital_id());
 
 -- Hospital + first Hospital Admin bootstrap (doc 03) needs a path that runs
 -- before any user_hospital_roles row exists for that hospital. That path

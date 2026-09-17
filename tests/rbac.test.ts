@@ -40,22 +40,34 @@ async function actingAs(key: string) {
   currentAuthUser.id = authIds[key];
 }
 
+// This network sees several seconds of round-trip latency per query to the
+// Supabase pooler — running the independent setup calls below in parallel
+// (rather than one giant sequential chain) keeps beforeAll's wall-clock
+// time from multiplying with every fixture added.
 beforeAll(async () => {
-  hospitalA = await createHospital({ name: "RBAC Test Hospital A", timezone: "Asia/Kolkata" });
-  hospitalB = await createHospital({ name: "RBAC Test Hospital B", timezone: "Asia/Kolkata" });
+  // Suffixed so a leftover row from an interrupted previous run (or one
+  // that picked up an audit_log reference somewhere and became permanent)
+  // never collides with this run's shortCode.
+  const suffix = Date.now();
+  [hospitalA, hospitalB] = await Promise.all([
+    createHospital({ name: "RBAC Test Hospital A", shortCode: `RBAC-A-${suffix}`, timezone: "Asia/Kolkata" }),
+    createHospital({ name: "RBAC Test Hospital B", shortCode: `RBAC-B-${suffix}`, timezone: "Asia/Kolkata" }),
+  ]);
 
   const roles: Role[] = ["HOSPITAL_ADMIN", "CAMPAIGN_MANAGER", "CLINICAL_REVIEWER"];
-  for (const role of roles) {
-    const authId = crypto.randomUUID();
-    authIds[role] = authId;
-    const user = await createUser({
-      email: `${role.toLowerCase()}@rbac-test.local`,
-      displayName: role,
-      authProviderId: authId,
-    });
-    appUserIds[role] = user.id;
-    await assignHospitalRole({ userId: user.id, hospitalId: hospitalA.id, role });
-  }
+  await Promise.all(
+    roles.map(async (role) => {
+      const authId = crypto.randomUUID();
+      authIds[role] = authId;
+      const user = await createUser({
+        email: `${role.toLowerCase()}@rbac-test.local`,
+        displayName: role,
+        authProviderId: authId,
+      });
+      appUserIds[role] = user.id;
+      await assignHospitalRole({ userId: user.id, hospitalId: hospitalA.id, role });
+    }),
+  );
 
   const paAuthId = crypto.randomUUID();
   authIds.PLATFORM_ADMIN = paAuthId;
@@ -69,11 +81,20 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await admin`delete from user_hospital_roles where hospital_id in (${hospitalA.id}, ${hospitalB.id})`;
-  // A bare ${array} would serialize as a Postgres array literal, not an
-  // expanded IN-list — sql(array) is postgres.js's helper for the latter.
-  await admin`delete from users where id in ${admin(Object.values(appUserIds))}`;
-  await admin`delete from hospitals where id in (${hospitalA.id}, ${hospitalB.id})`;
+  // beforeAll may not have finished — don't compound that failure with a
+  // fresh crash reading .id off an undefined fixture.
+  if (hospitalA && hospitalB) {
+    await admin`delete from user_hospital_roles where hospital_id in (${hospitalA.id}, ${hospitalB.id})`;
+  }
+  const userIds = Object.values(appUserIds);
+  if (userIds.length > 0) {
+    // A bare ${array} would serialize as a Postgres array literal, not an
+    // expanded IN-list — sql(array) is postgres.js's helper for the latter.
+    await admin`delete from users where id in ${admin(userIds)}`;
+  }
+  if (hospitalA && hospitalB) {
+    await admin`delete from hospitals where id in (${hospitalA.id}, ${hospitalB.id})`;
+  }
   await admin.end();
 });
 

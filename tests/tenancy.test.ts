@@ -31,13 +31,18 @@ let ctxA: TenantContext;
 let ctxB: TenantContext;
 
 beforeAll(async () => {
+  // hospitalA ends up permanently undeletable once the audit_log test below
+  // writes a row referencing it (FK + append-only, by design) — so a fixed
+  // shortCode collides with the previous run's leftover row. Suffix with a
+  // timestamp to keep each run's fixtures unique.
+  const suffix = Date.now();
   [hospitalA] = await db
     .insert(hospitals)
-    .values({ name: "Tenancy Test Hospital A", timezone: "Asia/Kolkata" })
+    .values({ name: "Tenancy Test Hospital A", shortCode: `TEN-A-${suffix}`, timezone: "Asia/Kolkata" })
     .returning();
   [hospitalB] = await db
     .insert(hospitals)
-    .values({ name: "Tenancy Test Hospital B", timezone: "Asia/Kolkata" })
+    .values({ name: "Tenancy Test Hospital B", shortCode: `TEN-B-${suffix}`, timezone: "Asia/Kolkata" })
     .returning();
 
   ctxA = { hospitalId: hospitalA.id, userId: userIdA, role: "HOSPITAL_ADMIN" };
@@ -48,16 +53,21 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Cascade manually — no ON DELETE CASCADE by design, so tests clean up
-  // explicitly rather than relying on it in production schema. Runs on the
-  // admin connection since app_user has no DELETE grant (see above).
-  await admin`delete from patients where hospital_id in (${hospitalA.id}, ${hospitalB.id})`;
-  // hospitalB is deletable; hospitalA is not, by the time the audit_log
-  // describe block below runs — it writes a row referencing hospitalA, and
-  // audit_log rows are permanent (R5), so the FK makes hospitalA permanent
-  // too. That's the append-only guarantee working as intended, not a leak
-  // to work around: leave hospitalA in place rather than fight it.
-  await admin`delete from hospitals where id = ${hospitalB.id}`;
+  // beforeAll may not have finished — don't compound that failure with a
+  // fresh crash reading .id off an undefined fixture.
+  if (hospitalA && hospitalB) {
+    // Cascade manually — no ON DELETE CASCADE by design, so tests clean up
+    // explicitly rather than relying on it in production schema. Runs on
+    // the admin connection since app_user has no DELETE grant (see above).
+    await admin`delete from patients where hospital_id in (${hospitalA.id}, ${hospitalB.id})`;
+    // hospitalB is deletable; hospitalA is not, by the time the audit_log
+    // describe block below runs — it writes a row referencing hospitalA,
+    // and audit_log rows are permanent (R5), so the FK makes hospitalA
+    // permanent too. That's the append-only guarantee working as intended,
+    // not a leak to work around: leave hospitalA in place rather than
+    // fight it.
+    await admin`delete from hospitals where id = ${hospitalB.id}`;
+  }
   await admin.end();
 });
 

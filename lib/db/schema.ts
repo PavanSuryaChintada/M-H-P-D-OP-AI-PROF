@@ -575,6 +575,15 @@ export const escalations = pgTable("escalations", {
   patientId: uuid("patient_id").notNull().references(() => patients.id),
   campaignId: uuid("campaign_id").references(() => campaigns.id),
   callId: uuid("call_id").references(() => calls.id),
+  // Doc 13 §4/deliverable 5 — "escalation creation is idempotent per
+  // {task_id, attempt}", added after doc 01's original schema (which
+  // predates doc 13). Nullable because not every future escalation source
+  // need originate from an outreach task, but the consensus system's path
+  // (the only writer per the hard rule below) always sets both, and the
+  // unique index is what actually enforces the idempotency, not the
+  // application remembering to check first.
+  outreachTaskId: uuid("outreach_task_id").references(() => outreachTasks.id),
+  attemptNumber: integer("attempt_number"),
   triggerReason: text("trigger_reason").notNull(),
   clinicalIndicators: jsonb("clinical_indicators"),
   consensusResult: jsonb("consensus_result"), // individual assessments + disagreement + final decision
@@ -587,7 +596,31 @@ export const escalations = pgTable("escalations", {
 }, (t) => [
   index("escalations_hospital_idx").on(t.hospitalId),
   index("escalations_hospital_state_idx").on(t.hospitalId, t.state),
+  uniqueIndex("escalations_task_attempt_idx").on(t.outreachTaskId, t.attemptNumber),
 ]);
+
+// Doc 13 §3 — a snapshot of what each of the three assessors said AT THE
+// MOMENT consensus ran, kept even if the underlying triage_results row is
+// later changed. This is what makes "Claude said routine, GPT said
+// concerning, the rule engine matched red flag HF-04 — escalated on rule 2"
+// answerable from the escalation record alone, per the doc's acceptance
+// criteria — not by re-deriving it from triage_results after the fact.
+export const escalationAssessments = pgTable("escalation_assessments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  escalationId: uuid("escalation_id").notNull().references(() => escalations.id),
+  assessorId: text("assessor_id").notNull(), // "claude-triage-v1" | "gpt-triage-v1" | "rule-engine-v1"
+  status: text("status").notNull(), // "completed" | "failed" (doc 13 rule 4 — ASSESSOR_FAILURE)
+  classification: triageClassificationEnum("classification"), // null when status = "failed"
+  confidence: numeric("confidence", { precision: 4, scale: 3 }),
+  severityRank: integer("severity_rank"), // computed at consensus time — see lib/ai/consensus.ts
+  observedIndicators: jsonb("observed_indicators"),
+  evidence: jsonb("evidence"),
+  promptVersion: text("prompt_version"),
+  modelProvider: text("model_provider"),
+  errorDetail: text("error_detail"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("escalation_assessments_escalation_idx").on(t.escalationId)]);
 
 // R7: history of every escalation state change.
 export const escalationStateTransitions = pgTable("escalation_state_transitions", {

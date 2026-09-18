@@ -57,6 +57,13 @@
       "when": 1789749551175,
       "tag": "0007_complex_zeigeist",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789750746915,
+      "tag": "0008_giant_black_cat",
+      "breakpoints": true
     }
   ]
 }

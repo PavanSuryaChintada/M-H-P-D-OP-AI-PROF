@@ -75,6 +75,16 @@ alter table users disable row level security;
 --    except user_hospital_roles, which needs a different policy shape (see
 --    below) because auth must be able to look up a user's roles before a
 --    hospital context exists to set app.hospital_id to.
+--
+--    MAINTENANCE: a table added by a later migration (e.g. doc 13's
+--    escalation_assessments) is NOT automatically covered — §1's
+--    `grant ... on all tables in schema public` only grants tables that
+--    exist at the moment this file runs, and a new table gets no RLS
+--    policy until it's added to tenant_tables below. Forgetting this
+--    surfaces as "permission denied" (found this way, not by inspection)
+--    the first time the app tries to touch the new table — add it here
+--    and re-run `npm run db:rls` as part of the same migration that adds
+--    the table, not after a failure reports it.
 -- ---------------------------------------------------------------------------
 do $$
 declare
@@ -84,7 +94,7 @@ declare
     'medications','care_plans','procedures','communications','tasks',
     'protocols','knowledge_chunks','campaigns','outreach_tasks',
     'outreach_task_state_transitions','calls','call_turns','triage_results',
-    'escalations','escalation_state_transitions','documentation_records',
+    'escalations','escalation_state_transitions','escalation_assessments','documentation_records',
     'events','notifications','audit_log','ai_usage','hospital_capacity',
     'escalation_contacts','campaign_state_transitions','eligibility_evaluations'
   ];

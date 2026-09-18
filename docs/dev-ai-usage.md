@@ -4,6 +4,20 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 (later) — Doc 07: queue states, retries, callbacks, failure recovery
+
+**Tool:** Claude Code (Sonnet 5).
+
+- `lib/queue/state-machine.ts` — the full transition graph exactly as the spec's diagram draws it, including two subtleties: `CALLBACK_SCHEDULED` is only reachable from `CONNECTED` (not `CALLING` — you can't request a callback on a call that never picked up), and `DECLINED`/`INVALID_NUMBER` are transient two-hop states (`CALLING→DECLINED→COMPLETED`), not direct jumps, so the transition history stays an honest record.
+- `lib/queue/outcome-policy.ts` — the literal outcome table as data. `lib/queue/backoff.ts` — base[attempt]±20% jitter, clamped forward through calling hours and patient preference in 15-minute steps, refusing (`WINDOW_WOULD_EXPIRE`) rather than scheduling an impossible call.
+- `lib/queue/record-outcome.ts` orchestrates all of it, including the one genuinely tricky mechanic: `claim.ts` increments `attempt_count` unconditionally at claim time, before any outcome is known, so making `PROVIDER_ERROR` "not consume an attempt" means reversing that increment by one after the fact — not just skipping an increment that already happened.
+- `lib/queue/reaper.ts` (backed by a proper repository function this time, not a repeat of doc 06's R2.3 mistake) resets stale `CALLING`/`CONNECTED` leases, releases capacity in the same transaction, and leaves `attempt_count` untouched.
+- **Two test bugs caught by running them, not implementation bugs:** a callback test tried to transition `CALLING→CALLBACK_SCHEDULED` directly, which the state machine correctly rejected (the spec's diagram only allows that from `CONNECTED` — the test was wrong, not the graph). A `PROVIDER_ERROR` test asserted `attempt_count` stays unchanged, but per the design above it's supposed to decrement back to what it was before the claim-time increment — fixed the assertion, not the code, once the reasoning was traced through.
+- **Verified the SIGKILL acceptance criteria** by simulating exactly the DB state a crashed worker leaves behind (a `CALLING` row, expired lease, reserved capacity) rather than literally spawning and killing a process — `tests/queue-reaper.test.ts` confirms recovery to `RETRY_SCHEDULED`, capacity released, attempts untouched, and that a task with a still-valid lease is left alone.
+- `docs/queue-design.md` extended with the states/retries/callbacks/recovery sections.
+
+---
+
 ## 2026-09-18 (later) — Doc 06: queue priority & concurrency (highest-weighted doc in the pack)
 
 **Tool:** Claude Code (Sonnet 5). Followed the spec's SQL and formula literally rather than reinterpreting it — this is the doc where that matters most.

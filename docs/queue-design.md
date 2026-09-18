@@ -80,5 +80,42 @@ The claim (`lib/queue/claim.ts`) is one transaction:
 ## What doc 06 does not cover
 
 - Turning an eligible patient into a callable task in the first place — that gap between doc 05 (eligibility) and doc 06 (claiming) is bridged by `lib/queue/materialize.ts`, wired into a campaign's transition to RUNNING.
-- Retry backoff, callback rescheduling, dropped-call handling, and stale-lease recovery — doc 07.
+- Retry backoff, callback rescheduling, dropped-call handling, and stale-lease recovery — doc 07 (below).
 - The mandatory 20-30 patient simulation — doc 08.
+
+---
+
+# States, Retries, Callbacks & Failure Recovery (Doc 07)
+
+## State machine
+
+`lib/queue/state-machine.ts` declares every legal move; `assertValidTaskTransition` throws `IllegalTaskTransitionError` on anything else — there is no arbitrary `UPDATE state`. The graph matches the spec's diagram exactly, including two points worth calling out because they're easy to get wrong:
+
+- **`CALLBACK_SCHEDULED` is only reachable from `CONNECTED`, never `CALLING`.** A patient can't request a callback on a call that never picked up. (A test originally asserted the opposite and was wrong, not the state machine — see `docs/dev-ai-usage.md`.)
+- **`DECLINED` and `INVALID_NUMBER` are transient, not resting states.** The diagram shows `CALLING → DECLINED → COMPLETED` and `CALLING → INVALID_NUMBER → MANUAL_FOLLOW_UP` as two hops, both recorded in `outreach_task_state_transitions` — not a single jump straight to the final state. That keeps the history table an honest record of what actually happened.
+
+## Outcome → policy
+
+`lib/queue/outcome-policy.ts` is the literal table from the spec, as data — nothing branches on outcome strings scattered through the codebase, it all reads `OUTCOME_POLICY[outcome]`. The one design point worth restating: **`PROVIDER_ERROR` does not consume the patient's attempt budget.** Since `claim.ts` increments `attempt_count` unconditionally at claim time (before any outcome is known), "not consuming an attempt" means `recordCallOutcome` reverses that increment by one when the outcome is `PROVIDER_ERROR` — so the next real attempt reuses the same attempt slot rather than skipping ahead. A patient should never end up in manual follow-up because *our* infrastructure was down.
+
+## Backoff
+
+`lib/queue/backoff.ts`: `base[attempt] * (1 ± 20% jitter)`, then clamped forward in 15-minute steps until both the hospital's calling hours and the patient's stated preference are satisfied. If no such slot exists before the clinical window closes, the task goes straight to `MANUAL_FOLLOW_UP` with reason `WINDOW_WOULD_EXPIRE` — the system never schedules a call that legally cannot happen. `BUSY` (10 min) and `DROPPED` (5 min) use fixed backoffs instead of the base table, per the spec.
+
+## Callbacks
+
+`schedule_callback` (doc 10's tool surface) is expected to validate the requested time *during the conversation* and offer an alternative there if it's invalid. `lib/queue/callback.ts`'s `validateCallbackTime` is the backstop that makes "silently moved" structurally impossible even if that in-conversation check is ever skipped: `recordCallOutcome` refuses (throws `InvalidCallbackTimeError`) rather than schedule a `CALLBACK_REQUESTED` outcome outside calling hours or past the clinical window. A valid callback enters Tier 0 at claim time (doc 06) — time-pinned, not re-scored.
+
+## Dropped-call context
+
+`calls.partial_state jsonb` holds whatever the Voice Intake Agent (doc 10) captured before a drop — answered questions, reported symptoms, protocol step index, last utterance. `getMostRecentCallForTask` reads the prior attempt's `partial_state` back for the next one. Doc 07's job stops at "the data survives and is retrievable in order"; making the agent actually *use* it to resume instead of restart is doc 10's.
+
+## Worker failure recovery
+
+Every claimed task carries `lease_expires_at`, set to 5 minutes at claim time. `lib/queue/reaper.ts` (backed by `reapExpiredLeases` in the outreach-tasks repository, per the R2.3 rule that all queries live in the repository layer) finds `CALLING`/`CONNECTED` tasks whose lease has expired, resets them to `RETRY_SCHEDULED` with a fixed 2-minute delay, releases the capacity slot in the same transaction, and does **not** touch `attempt_count` — a crashed worker is never the patient's fault, and per PRD §11/§24 must never permanently hold capacity.
+
+**Verified:** `tests/queue-reaper.test.ts` simulates the state a crashed worker leaves behind (a `CALLING` row with an expired lease and a reserved capacity slot — the closest a test gets to reproducing an actual `SIGKILL`) and confirms the task returns to `RETRY_SCHEDULED`, `attempt_count` is unchanged, `claimed_by`/`lease_expires_at` are cleared, and `hospital_capacity.current_active_calls` drops by exactly the number of reaped tasks. A task with a still-valid lease is left untouched.
+
+## Duplicate prevention
+
+`calls` carries `UNIQUE (outreach_task_id, attempt_number)`; `createCall` uses `ON CONFLICT DO NOTHING` on that constraint, so a retried write for the same attempt is a no-op, not a duplicate row. Idempotency keys of the form `{task_id}:{attempt}:{action}` for every other side effect (EHR writes, notifications, escalations) are doc 20's territory once those side effects exist.

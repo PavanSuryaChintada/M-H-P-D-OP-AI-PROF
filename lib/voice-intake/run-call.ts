@@ -185,7 +185,16 @@ export async function runCall(input: RunCallInput): Promise<RunCallResult> {
     return { outcome: "DECLINED", transcript, callId: await resolveCallId(ctx, outreachTaskId), emergencyTriggered: false, escalationId: null };
   }
   if (detectNotConvenient(timeResponse.text) || timeResponse.callbackRequestedAt) {
-    const callbackAt = timeResponse.callbackRequestedAt ?? new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    // The 24h default is a fallback for "no time given," not a promise —
+    // it must never be offered past the task's own clinical deadline.
+    // A task within 24h of its deadline (or, at the boundary, one created
+    // in the same instant validateCallbackTime runs) would otherwise
+    // always fail with PAST_WINDOW_END: `now` here and the deadline are
+    // read from two different clocks (Node vs Postgres `now()` at task
+    // creation), so even a few milliseconds' drift between them flips a
+    // naive `now + 24h` past a deadline that was itself `now + 24h`.
+    const defaultCallbackAt = new Date(Math.min(now.getTime() + 24 * 60 * 60 * 1000, task.clinicalDeadlineAt.getTime() - 60 * 1000));
+    const callbackAt = timeResponse.callbackRequestedAt ?? defaultCallbackAt;
     await say(transcript, "No problem, I'll call back at a better time.");
     await finishWithOutcome(ctx, outreachTaskId, { outcome: "CALLBACK_REQUESTED", callbackRequestedAt: callbackAt, now });
     return { outcome: "CALLBACK_REQUESTED", transcript, callId: await resolveCallId(ctx, outreachTaskId), emergencyTriggered: false, escalationId: null };

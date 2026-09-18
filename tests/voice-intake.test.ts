@@ -65,8 +65,16 @@ const RED_FLAGS: RedFlag[] = [
 
 async function seedTask(attemptNumber: number) {
   const [patient] = await admin`insert into patients (hospital_id, mrn, first_name, last_name) values (${hospital.id}, ${"VI-P-" + attemptNumber}, 'Voice', 'Intake') returning id`;
+  // Deadline is deliberately well past the callback_requester persona's own
+  // "call me back tomorrow" offer (sim/call-simulator.ts: now + 24h, read
+  // from its own clock at listen() time). A deadline of exactly now + 24h
+  // raced that offer against two independently-read clocks (Node in the
+  // test/simulator vs Postgres `now()` at insert time) with zero margin —
+  // whichever clock read a few hundred ms later would push the callback
+  // past PAST_WINDOW_END. Found via a from-scratch local Postgres run
+  // (no pooler latency masking the timing), not by inspection.
   const [task] = await admin`insert into outreach_tasks (hospital_id, campaign_id, patient_id, clinical_deadline_at, scheduled_for, max_attempts, risk_level, total_window_hours)
-    values (${hospital.id}, ${campaignId}, ${patient.id}, now() + interval '1 day', now(), 5, 'MEDIUM', 24) returning id`;
+    values (${hospital.id}, ${campaignId}, ${patient.id}, now() + interval '3 days', now(), 5, 'MEDIUM', 72) returning id`;
   // claim it into CALLING, matching what claim.ts would have done, so recordCallOutcome's transition is legal.
   await admin`update outreach_tasks set state = 'CALLING', attempt_count = 1, claimed_by = 'test-worker' where id = ${task.id}`;
   return { taskId: task.id as string, patientId: patient.id as string };

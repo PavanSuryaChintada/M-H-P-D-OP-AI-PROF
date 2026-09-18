@@ -152,6 +152,8 @@ const createEscalationTool: ToolDefinition<
     patientId: string;
     campaignId?: string;
     callId?: string;
+    outreachTaskId?: string;
+    attemptNumber?: number;
     triggerReason: string;
     clinicalIndicators?: unknown;
     consensusResult?: unknown;
@@ -165,6 +167,8 @@ const createEscalationTool: ToolDefinition<
     patientId: z.uuid(),
     campaignId: z.uuid().optional(),
     callId: z.uuid().optional(),
+    outreachTaskId: z.uuid().optional(),
+    attemptNumber: z.number().int().min(0).optional(),
     triggerReason: z.string().min(1),
     clinicalIndicators: z.unknown().optional(),
     consensusResult: z.unknown().optional(),
@@ -173,7 +177,7 @@ const createEscalationTool: ToolDefinition<
   // Doc 09 §2 hard rule — no agent may call this except the consensus system.
   allowedAgents: ["escalation_consensus"],
   writes: true,
-  handler: async (ctx, args) => createEscalation(ctx, args),
+  handler: async (ctx, args) => (await createEscalation(ctx, args)).row,
 };
 
 const requestNotification: ToolDefinition<

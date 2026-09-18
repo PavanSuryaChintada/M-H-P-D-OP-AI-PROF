@@ -4,6 +4,21 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 (later still) — Doc 13: escalation consensus & clinical safety (built ahead of doc 12)
+
+**Tool:** Claude Code (Sonnet 5).
+
+- **Deliberate reordering, stated up front:** doc 13 depends on doc 12's `TriageResult` schema, not on doc 12's actual LLM-calling pipeline. Built `lib/ai/schemas/triage.ts` (doc 12 R1's schema, exactly as specified) as a prerequisite slice of doc 12, then doc 13's consensus/rule-engine/persistence on top of it — the parts of doc 12 that still need building (the two LLM assessors' prompting, the validation/repair loop, the transcript hallucination check) are unaffected and get filled in when doc 12 itself is built.
+- `lib/ai/assessors/rule-engine.ts`: deterministic, no LLM, and deliberately DB-free — takes the protocol's red flags as a plain argument instead of loading them itself, so doc 11 (which owns real structured protocol content) only needs to feed this same function real data later, no rework.
+- `lib/ai/consensus.ts`: the 8 rules, implemented exactly as ordered in the spec. **Found and documented a genuine spec observation, not a bug:** rule 5 (`MATERIAL_DISAGREEMENT`, severity-rank gap ≥ 2) is structurally unreachable given the rule ordering — any `urgent` classification already fires rule 1, any `uncertain` already fires rule 3, both before rule 5 is ever checked, leaving only `{routine, concerning}` (gap ≤ 1) by the time execution would reach it. Implemented exactly as specified anyway rather than silently reordered to make it reachable, and documented in the code, the test, and `docs/escalation-consensus.md`.
+- **Schema gaps found and fixed** (same pattern as doc 09's `ai_usage` fix): doc 01's `escalations` table predates doc 13's explicit idempotency requirement ("per `{task_id, attempt}`") — added `outreach_task_id`/`attempt_number` columns plus a unique index, additive migration. Added the entirely new `escalation_assessments` table (doc 13 §3's "all three TriageResults in full" persistence requirement) since nothing like it existed.
+- **Real operational bug caught by actually running the integration test, not by review:** the new `escalation_assessments` table wasn't in `lib/db/rls.sql`'s tenant-tables list, and the file's one-time `GRANT ... ON ALL TABLES` predates the table's existence — the first live write failed with `permission denied for table escalation_assessments`. Fixed by adding the table to the RLS script and re-running `npm run db:rls`, and added a maintenance note directly in `rls.sql` since this is a general trap for any future new table, not specific to this one.
+- `escalateFromConsensus()` (`lib/ai/run-consensus.ts`) is the single entry point: compute consensus, and only persist (idempotently, with all three assessment snapshots) if it says to escalate. No parameter, tool, or code path exists that could turn an `escalate: true` verdict into `false` — verified structurally (no such tool in doc 09's registry) and by the idempotency test (a retried call returns the same escalation, doesn't re-snapshot).
+- Tests: `tests/consensus.test.ts` (one per rule, including the two rule-7 boundary cases — a sub-0.7 confidence and non-empty `missing_information` both correctly fall through to rule 8 — and the acceptance-criteria case where both LLMs say routine but the rule engine's indicators alone trigger rule 2), `tests/rule-engine.test.ts`, `tests/escalation-consensus-integration.test.ts` (live DB: persistence, failed-assessor snapshots, idempotency). All passing; `tsc`/`eslint`/`tests/architecture.test.ts` clean.
+- `docs/escalation-consensus.md` written.
+
+---
+
 ## 2026-09-18 (later still) — Doc 09: AI architecture, tool gateway, provider abstraction
 
 **Tool:** Claude Code (Sonnet 5).

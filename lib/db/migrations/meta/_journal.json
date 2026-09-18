@@ -50,6 +50,13 @@
       "when": 1789714477670,
       "tag": "0006_round_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789749551175,
+      "tag": "0007_complex_zeigeist",
+      "breakpoints": true
     }
   ]
 }

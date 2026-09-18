@@ -671,11 +671,17 @@ export const aiUsage = pgTable("ai_usage", {
   provider: text("provider").notNull(),
   model: text("model").notNull(),
   purpose: text("purpose"),
+  // Doc 09 §4 — written on every call so doc 21's safety eval can compare
+  // report runs against the exact prompt version that produced them. Added
+  // after doc 01's original schema, which predates doc 09's spec.
+  promptVersion: text("prompt_version"),
   latencyMs: integer("latency_ms"),
   success: boolean("success").notNull(),
   tokenInput: integer("token_input"),
   tokenOutput: integer("token_output"),
   estimatedCostUsd: numeric("estimated_cost_usd", { precision: 10, scale: 6 }),
+  retryCount: integer("retry_count").notNull().default(0),
+  validationOutcome: text("validation_outcome"), // "valid" | "repaired" | "failed" — doc 12's structured-output pipeline populates this
   error: text("error"),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("ai_usage_hospital_idx").on(t.hospitalId)]);

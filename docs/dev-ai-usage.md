@@ -4,6 +4,31 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 — Doc 04: patient & discharge data ingestion
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Extended `encounters` with `risk_level` (new enum), `follow_up_window_hours`, and `source_message_id` (unique per hospital — the R5 idempotency key). Put these on the encounter rather than as a jsonb Observation value, since doc 05/06's eligibility and priority-scoring queries need to filter/sort on them directly.
+- `lib/discharge/schema.ts` — the zod wire format for one discharge record. `lib/discharge/ingest.ts` — the shared pipeline (idempotency check by `sourceMessageId` → find-or-create patient by MRN → create encounter → create conditions/observations/medications/care plan → emit `patient.imported`/`discharge.ingested` events) used by both the HTTP batch endpoint and the generator directly, since seeding ~450 patients one HTTP round trip at a time defeats the point of a batch endpoint.
+- `POST /api/hospitals/[id]/discharges` — accepts a JSON array or NDJSON body, validates every record independently with zod, returns `{accepted, rejected: [{index, field, reason}]}`. Partial success by design: one bad record never takes down the batch.
+- **Found a real concurrency bug before it shipped**, not after: parallelizing the batch endpoint's per-record processing for throughput, I realized two records for the *same* MRN in one batch (a re-admission) would race the find-or-create-patient step if processed concurrently — both see "no patient yet," both try to create one, one hits the unique constraint. Fixed by grouping records by MRN first: different MRNs process concurrently (bounded to the pool size), same-MRN records process in order within their own group.
+- `sim/rng.ts` (mulberry32, no dependency) + `sim/generate-patients.ts` — deterministic generator matching every distribution requirement in R2 (risk mix, discharge-time spread including near-deadline cases, follow-up window mix, ~8% invalid phone numbers, a handful of dual-condition "two campaign" candidates). Generation itself stays a single sequential loop (it's what consumes the shared RNG state — parallelizing it would break reproducibility), but the actual DB writes run with bounded concurrency, which is what actually matters for wall-clock time.
+- **Deliberately did not fake two things doc 04's R2 asks for:** "~12% who will request callbacks" and "~15% who will present protocol red flags in conversation" are call-*behavior* scripting for a simulator that doesn't exist yet (doc 10) — there's no field to put them in yet, and it's doc 10's call to make whether that belongs on the patient or on a specific outreach task. Documented as an open gap rather than inventing a field now to satisfy the letter of R2.
+- Closed a loop left open in doc 02: actually implemented the "audited" (Platform Admin, needs `?reason=`, routes through `resolvePlatformAdminAccess` and gets audit-logged) and "limited" (Campaign Manager sees demographics + risk/timing, not full clinical detail) grants on the new patient-detail route, rather than leaving them as permission-matrix entries nothing ever branched on.
+- Minimal patient list + detail admin UI pages, linked from the hospital detail page.
+- Sample feed: `sim/fixtures/sample-discharge-feed.ndjson`, 10 hand-written representative records (not generator output) showing the exact wire format.
+- `npm run seed:demo` chains migrate → RLS → hospitals → users → patients into one command.
+- Tests: idempotency (re-ingesting the same `sourceMessageId` doesn't duplicate), the literal acceptance criterion (3 malformed of N records → N-3 accepted, 3 rejected with field-level reasons), and same-batch-twice-same-row-count.
+
+**Another real performance issue found via testing, not assumed:** the double-batch-of-10 test kept timing out even at 90s. Traced it to the batch endpoint's original strictly-sequential per-record loop — at confirmed multi-second-per-query latency on this network, 20 sequential ingests (each several round trips) genuinely doesn't fit in 90s. This is what led to parallelizing the endpoint (see the concurrency-bug entry above) — a real design improvement the test surfaced, not a workaround for the test itself. After the fix, the same test completes in well under its budget.
+
+**Verified against the live project:** ran the generator at `--count 20` first to confirm the distribution logic (risk mix, hospital spread, invalid-phone rate) actually lands correctly in the DB, then ran the full `--count 450`. Took ~20 minutes wall-clock on this network (confirmed still making progress via `Get-Process`, not stalled — this is the same per-query latency documented in the doc 03 entry, not a new issue). Idempotency held across the two runs: the 20-patient test run's records showed up as "already ingested" in the full run rather than duplicating. Final dataset matches every R1/R2 target: 450 total patients, RHP (the low-capacity hospital) has 90, risk mix 49/35/11/5 (target 50/30/15/5), invalid phone rate 7.6% (target ~8%).
+
+**Still open:** the two call-behavior scripting flags noted above (defer to doc 10); "eligible for two campaigns" is tagged via a second condition code on ~2% of patients, but there's no campaign/eligibility engine yet (doc 05) to actually confirm it produces dual eligibility — that's the next doc's job to close the loop on.
+
+---
+
 ## 2026-09-17 (same day, later still still) — Doc 03: hospital onboarding & configuration
 
 **Tool:** Claude Code (Sonnet 5).

@@ -78,6 +78,13 @@
       "when": 1789752632438,
       "tag": "0010_shocking_sharon_carter",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789754009462,
+      "tag": "0011_nostalgic_mauler",
+      "breakpoints": true
     }
   ]
 }

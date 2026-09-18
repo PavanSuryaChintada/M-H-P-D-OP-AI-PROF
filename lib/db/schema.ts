@@ -568,6 +568,9 @@ export const callTurns = pgTable("call_turns", {
   turnIndex: integer("turn_index").notNull(),
   speaker: text("speaker").notNull(), // AGENT | PATIENT
   content: text("content").notNull(),
+  // Doc 10 R3 — "full call_turns (role, text, timestamp, latency)"; doc 01's
+  // original table predates this and had no latency column.
+  latencyMs: integer("latency_ms"),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("call_turns_call_idx").on(t.callId)]);
 

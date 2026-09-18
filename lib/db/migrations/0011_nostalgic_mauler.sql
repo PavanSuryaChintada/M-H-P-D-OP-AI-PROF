@@ -1,0 +1,1 @@
+ALTER TABLE "call_turns" ADD COLUMN "latency_ms" integer;

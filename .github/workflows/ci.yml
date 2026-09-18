@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # A fresh, disposable Postgres for every run — not the project's real
+    # Supabase database. pgvector's own image ships the extension this
+    # schema needs (knowledge_chunks.embedding); a plain postgres image
+    # would fail on `CREATE EXTENSION vector`.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Superuser connection — migrations and rls.sql (role/RLS setup) need
+      # elevated privileges. Mirrors DATABASE_URL's role in local dev
+      # (see lib/db/client.ts and scripts/apply-rls.ts).
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      # rls.sql deliberately creates app_user with a hardcoded placeholder
+      # password ('CHANGE_ME'), never a real one read from the environment
+      # (see rls.sql's own comment — that file is committed, so a real
+      # secret can never live in it). The "Set app_user password" step below
+      # is what makes this URL's password actually work — every actual query
+      # in the test suite then connects as this real, RLS-scoped role, the
+      # same "never run tests as the superuser" requirement
+      # tests/tenancy.test.ts's own comments call out.
+      DATABASE_URL_POOLED: postgres://app_user:ci_test_password@localhost:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Run migrations
+        run: npm run db:migrate
+
+      - name: Apply RLS policies
+        run: npm run db:rls
+
+      - name: Set app_user password
+        run: psql "$DATABASE_URL" -c "ALTER ROLE app_user PASSWORD 'ci_test_password';"
+
+      - name: Test
+        run: npm test

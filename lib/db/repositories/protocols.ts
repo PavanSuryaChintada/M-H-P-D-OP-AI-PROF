@@ -7,6 +7,52 @@
 import { and, eq, ilike, or } from "drizzle-orm";
 import { withTenant, type TenantContext } from "../tenant";
 import { protocols } from "../schema";
+import { StructuredProtocolSchema, type StructuredProtocol } from "../../protocols/schema";
+import type { RedFlag } from "../../ai/assessors/rule-engine";
+
+export interface CreateProtocolInput {
+  title: string;
+  category?: string;
+  content: string;
+  structuredContent: StructuredProtocol;
+}
+
+/** Doc 11 R1 — validates the structured content with zod before it's ever written; a protocol that doesn't match the shape the rule engine (doc 13) and intake (doc 10) depend on is rejected, not stored malformed. */
+export async function createProtocol(ctx: TenantContext, input: CreateProtocolInput) {
+  const structuredContent = StructuredProtocolSchema.parse(input.structuredContent);
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx
+      .insert(protocols)
+      .values({
+        hospitalId: ctx.hospitalId,
+        title: input.title,
+        category: input.category,
+        content: input.content,
+        version: structuredContent.version,
+        structuredContent,
+        specialty: structuredContent.specialty,
+        effectiveFrom: new Date(structuredContent.effectiveFrom),
+      })
+      .returning();
+    return row;
+  });
+}
+
+/** Doc 13's rule engine takes RedFlag[] as a plain argument (lib/ai/assessors/rule-engine.ts) rather than loading them itself — this is the function that supplies real data, reshaping the protocol's structured red_flags into the chunk-referencing shape the rule engine expects. */
+export async function getRedFlagsForProtocol(ctx: TenantContext, protocolId: string): Promise<RedFlag[]> {
+  const protocol = await getProtocolById(ctx, protocolId);
+  if (!protocol?.structuredContent) return [];
+  const structured = protocol.structuredContent as StructuredProtocol;
+  return structured.redFlags.map((flag) => ({
+    id: flag.id,
+    description: flag.description,
+    triggerKeywords: flag.triggerKeywords,
+    severity: flag.severity,
+    protocolId: protocol.id,
+    protocolVersion: String(protocol.version),
+    chunkId: `red_flag:${flag.id}`, // resolved to a real knowledge_chunks row by lib/ai/retrieval.ts's getTriageContext
+  }));
+}
 
 export async function getProtocolById(ctx: TenantContext, protocolId: string) {
   return withTenant(ctx, async (tx) => {

@@ -20,25 +20,27 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.2",
     "next": "15.5.25",
+    "openai": "^7.18.0",
+    "postgres": "^3.4.9",
     "react": "^19",
     "react-dom": "^19",
-    "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.9",
-    "zod": "^4.6.5",
-    "dotenv": "^17.2.3",
-    "@supabase/supabase-js": "^2.116.0",
-    "@supabase/ssr": "^0.12.7"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "15.5.25",
+    "tsx": "^4.23.13",
     "typescript": "^5",
-    "drizzle-kit": "^0.31.10",
-    "vitest": "^5.0.1",
-    "tsx": "^4.23.13"
+    "vitest": "^5.0.1"
   }
 }

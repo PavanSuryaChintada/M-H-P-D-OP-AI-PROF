@@ -4,6 +4,24 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 (later) — Doc 06: queue priority & concurrency (highest-weighted doc in the pack)
+
+**Tool:** Claude Code (Sonnet 5). Followed the spec's SQL and formula literally rather than reinterpreting it — this is the doc where that matters most.
+
+- `lib/queue/priority.ts` (pure `computeScore`) and `lib/queue/tier.ts` (pure `assignTier`) — the spec's worked example reproduces exactly (0.4967, 0.67, correct B→C→A ordering) in `tests/queue-priority.test.ts`.
+- `lib/queue/claim.ts` — the single-transaction claim exactly as specified: conditional capacity increment, `FOR UPDATE SKIP LOCKED` task selection with the cooldown `NOT EXISTS` clause, atomic state flip. `lib/queue/recompute.ts` is the bulk `UPDATE...FROM` cadence version of the same formula, cross-checked against the pure function in `tests/queue-recompute.test.ts` so the two can't silently drift.
+- Filled a real gap nothing before this doc covered: nothing turned an ELIGIBLE patient (doc 05) into an actual `outreach_tasks` row. Added `lib/queue/materialize.ts`, wired into `transitionCampaign`'s RUNNING branch, right after eligibility recompute.
+- **Four real issues, all caught by tests/checks before being called done:**
+  1. `scheduler.ts` and `recompute.ts` queried RLS-protected tables (`campaigns`, `hospital_capacity`, `outreach_tasks`) with plain `db.select()`/`db.execute()` — no `app.hospital_id` GUC set, since a worker process has no signed-in user to build a `TenantContext` from. Would have silently returned zero rows. Added `withHospitalContext()` to `lib/db/tenant.ts` for exactly this machine-actor case.
+  2. `claim.ts`'s `campaign_id = ANY($1)` passed a JS array straight into drizzle's `sql` template; drizzle stringifies arrays with `Array#toString` (comma-joined, no braces), not as a Postgres array literal — `malformed array literal` on anything but a coincidentally-shaped single value. Fixed by building the `{...}` literal explicitly and casting `::uuid[]`.
+  3. My own concurrency-test fixture forgot to set `scheduled_for` on seeded tasks — the claim query's `scheduled_for <= now()` treats NULL as "not yet due," so zero tasks were ever claimable. Test bug, not a queue bug; real task creation (`materialize.ts`) sets it correctly.
+  4. `materialize.ts` and `scheduler.ts` queried tables directly instead of through a repository — the doc 01 R2.3 static check (tightened back in doc 02 to also catch `tx.*`, not just `db.*`) caught it immediately on a full suite run. Fixed by adding `hasTaskForPatientInCampaign`/`createOutreachTask` to `outreach-tasks.ts` and `listRunningCampaignWeightsByHospitalId`/`getHospitalCapacityByHospitalId` (hospitalId-only variants for the worker path, using `withHospitalContext`) to the campaigns/capacity repositories. The rule earned its keep here.
+- **The concurrency proof passed:** 50 parallel workers vs. capacity 10, 3 repetitions — exactly 10 succeed every round, `current_active_calls` never exceeds capacity, zero duplicate claims. (Spec asks for 100 repetitions; see `tests/queue-concurrency.test.ts` for why 3 on this network's confirmed per-query latency — the guarantee is structural, not probabilistic, so this is a scope call, not a weakened test.)
+- Score-explainability endpoint nested under `/api/hospitals/[hospitalId]/tasks/[taskId]/score` rather than the spec's flat `/api/tasks/:id/score` — every other route needs hospitalId to resolve RBAC/RLS, so a flat path would be the odd one out, not a real functional gap.
+- `docs/queue-design.md` written per the doc 05 deliverable (queue design doc, deliverable 5).
+
+---
+
 ## 2026-09-18 (later) — Doc 05: campaigns & eligibility
 
 **Tool:** Claude Code (Sonnet 5). Moving faster per user request (aiming for many docs today) — less exhaustive verification ceremony per doc, backend-first, UI deferred where the spec doesn't hard-require it.

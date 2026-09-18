@@ -39,3 +39,11 @@ export async function listEncountersForPatient(ctx: TenantContext, patientId: st
     tx.select().from(encounters).where(eq(encounters.patientId, patientId)),
   );
 }
+
+/** Doc 09 — backs the lookup_encounter tool. */
+export async function getEncounterById(ctx: TenantContext, encounterId: string) {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx.select().from(encounters).where(eq(encounters.id, encounterId));
+    return row ?? null;
+  });
+}

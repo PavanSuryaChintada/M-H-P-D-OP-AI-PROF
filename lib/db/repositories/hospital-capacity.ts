@@ -1,10 +1,18 @@
 import { eq } from "drizzle-orm";
-import { withTenant, type TenantContext } from "../tenant";
+import { withTenant, withHospitalContext, type TenantContext } from "../tenant";
 import { hospitalCapacity } from "../schema";
 
 export async function getHospitalCapacity(ctx: TenantContext) {
   return withTenant(ctx, async (tx) => {
     const [row] = await tx.select().from(hospitalCapacity).where(eq(hospitalCapacity.hospitalId, ctx.hospitalId));
+    return row ?? null;
+  });
+}
+
+/** Doc 06 scheduler — worker processes have no TenantContext, only the hospital they're ticking for. */
+export async function getHospitalCapacityByHospitalId(hospitalId: string) {
+  return withHospitalContext(hospitalId, async (tx) => {
+    const [row] = await tx.select().from(hospitalCapacity).where(eq(hospitalCapacity.hospitalId, hospitalId));
     return row ?? null;
   });
 }

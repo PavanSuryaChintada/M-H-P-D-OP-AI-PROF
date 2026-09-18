@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
-import { withTenant, type TenantContext } from "../tenant";
+import { and, eq } from "drizzle-orm";
+import { withTenant, withHospitalContext, type TenantContext } from "../tenant";
 import { campaigns, campaignStateTransitions } from "../schema";
 import type { CampaignState } from "../../campaigns/lifecycle";
 
@@ -77,5 +77,15 @@ export async function persistTransition(
 export async function listStateTransitions(ctx: TenantContext, campaignId: string) {
   return withTenant(ctx, async (tx) =>
     tx.select().from(campaignStateTransitions).where(eq(campaignStateTransitions.campaignId, campaignId)),
+  );
+}
+
+/** Doc 06 scheduler — worker processes have no signed-in user/TenantContext, only the hospital they're ticking for (see withHospitalContext). */
+export async function listRunningCampaignWeightsByHospitalId(hospitalId: string) {
+  return withHospitalContext(hospitalId, (tx) =>
+    tx
+      .select({ id: campaigns.id, weight: campaigns.priority })
+      .from(campaigns)
+      .where(and(eq(campaigns.hospitalId, hospitalId), eq(campaigns.state, "RUNNING"))),
   );
 }

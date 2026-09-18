@@ -154,6 +154,14 @@ export const eventStatusEnum = pgEnum("event_status", [
   "FAILED",
 ]);
 
+// Doc 14 R2/R6 — a failed EHR sync must be visible and retryable, never
+// silently swallowed; this is the field doc 20's retry worker reads.
+export const ehrSyncStatusEnum = pgEnum("ehr_sync_status", [
+  "PENDING",
+  "SYNCED",
+  "FAILED",
+]);
+
 // PRD §4 / doc 03 R1 — CREATED: just created, no config yet. CONFIGURED: has
 // operating config but hasn't cleared the readiness checklist. READY: passed
 // the checklist (see lib/hospitals/readiness.ts) and can run campaigns.
@@ -666,18 +674,36 @@ export const escalationStateTransitions = pgTable("escalation_state_transitions"
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("escalation_transitions_escalation_idx").on(t.escalationId)]);
 
+// Doc 14 R2 — extended to match the spec's DocumentationRecord shape.
+// `symptoms`/`observations`/`followUpRequired` (doc 01's original columns,
+// never referenced by any code) are superseded by the more specific
+// columns below but left in place rather than dropped/renamed — keeping
+// this additive avoids a data-model rename that drizzle-kit can only
+// resolve via an interactive prompt this environment can't answer, the
+// same reasoning behind every other schema change tonight.
 export const documentationRecords = pgTable("documentation_records", {
   id: uuid("id").primaryKey().defaultRandom(),
   hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
   callId: uuid("call_id").notNull().references(() => calls.id),
   patientId: uuid("patient_id").notNull().references(() => patients.id),
-  summary: text("summary").notNull(),
-  symptoms: jsonb("symptoms"),
-  observations: jsonb("observations"),
+  summary: text("summary").notNull(), // <= 600 chars, enforced by the zod schema on write
+  symptoms: jsonb("symptoms"), // superseded by patientReportedSymptoms below
+  observations: jsonb("observations"), // superseded by observationsRecorded below
   outcome: text("outcome"),
   triageResultId: uuid("triage_result_id").references(() => triageResults.id),
   escalationId: uuid("escalation_id").references(() => escalations.id),
-  followUpRequired: boolean("follow_up_required").notNull().default(false),
+  followUpRequired: boolean("follow_up_required").notNull().default(false), // superseded by followUpActions below
+  campaignId: uuid("campaign_id").references(() => campaigns.id),
+  schemaVersion: text("schema_version").notNull().default("1.0"),
+  patientReportedSymptoms: jsonb("patient_reported_symptoms"), // [{symptom, severity_reported, transcript_ref}]
+  observationsRecorded: jsonb("observations_recorded"), // observation ids created via record_observation
+  questionsAnswered: integer("questions_answered").notNull().default(0),
+  questionsTotal: integer("questions_total").notNull().default(0),
+  followUpActions: jsonb("follow_up_actions"), // [{action, owner_role, due_by}]
+  ehrSyncStatus: ehrSyncStatusEnum("ehr_sync_status").notNull().default("PENDING"),
+  ehrSyncError: text("ehr_sync_error"),
+  modelProvider: text("model_provider"),
+  promptVersion: text("prompt_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("documentation_records_hospital_idx").on(t.hospitalId)]);
 
@@ -794,6 +820,7 @@ export const TENANT_TABLE_NAMES = [
   "triage_results",
   "escalations",
   "escalation_state_transitions",
+  "escalation_assessments",
   "documentation_records",
   "events",
   "notifications",
@@ -804,4 +831,25 @@ export const TENANT_TABLE_NAMES = [
   "escalation_contacts",
   "campaign_state_transitions",
   "eligibility_evaluations",
+  "ehr_idempotency_records",
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Mock EHR & integration boundary (doc 15)
+// ---------------------------------------------------------------------------
+
+// Doc 15 R4 — every EHR write takes an idempotency key; replaying it
+// returns the original response with replayed:true instead of writing
+// again. One row per key, not per call, since a caller-supplied key can
+// legitimately be reused across retries of the exact same write.
+export const ehrIdempotencyRecords = pgTable("ehr_idempotency_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  idempotencyKey: text("idempotency_key").notNull(),
+  operation: text("operation").notNull(), // writeCommunication | writeObservation | createTask | writeEncounterNote
+  responseBody: jsonb("response_body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("ehr_idempotency_key_idx").on(t.hospitalId, t.idempotencyKey),
+  index("ehr_idempotency_hospital_idx").on(t.hospitalId),
+]);

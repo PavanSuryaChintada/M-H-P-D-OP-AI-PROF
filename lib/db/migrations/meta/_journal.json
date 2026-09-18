@@ -85,6 +85,13 @@
       "when": 1789754009462,
       "tag": "0011_nostalgic_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789756982516,
+      "tag": "0012_thick_ultimates",
+      "breakpoints": true
     }
   ]
 }

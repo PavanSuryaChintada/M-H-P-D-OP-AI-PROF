@@ -37,3 +37,18 @@ export async function withTenant<T>(
     return fn(tx);
   });
 }
+
+/**
+ * Doc 06/07 worker processes act on behalf of a hospital, not a signed-in
+ * user — there is no TenantContext to build. This arms RLS with just
+ * app.hospital_id (the only GUC the queue tables' policies actually check;
+ * see lib/db/rls.sql) so worker code reading/writing campaigns,
+ * outreach_tasks, hospital_capacity etc. isn't silently filtered to zero
+ * rows by the same RLS that protects everything else.
+ */
+export async function withHospitalContext<T>(hospitalId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.hospital_id', ${hospitalId}, true)`);
+    return fn(tx);
+  });
+}

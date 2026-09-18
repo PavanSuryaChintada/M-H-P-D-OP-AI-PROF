@@ -36,6 +36,13 @@
       "when": 1789711451652,
       "tag": "0004_good_colossus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789712708133,
+      "tag": "0005_needy_clint_barton",
+      "breakpoints": true
     }
   ]
 }

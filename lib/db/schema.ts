@@ -20,6 +20,7 @@ import {
   index,
   uniqueIndex,
   customType,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -470,6 +471,17 @@ export const outreachTasks = pgTable("outreach_tasks", {
   claimedBy: text("claimed_by"), // worker instance id, set atomically on claim
   claimedAt: timestamp("claimed_at", { withTimezone: true }),
   heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }), // reaper uses this to detect stale claims
+  // Doc 06 — snapshotted from the encounter at task-creation time rather
+  // than joined live on every claim/recompute: the queue's hot path scores
+  // hundreds of rows every 15s and shouldn't pay a join for data that's
+  // fixed for the task's lifetime.
+  riskLevel: riskLevelEnum("risk_level"),
+  totalWindowHours: integer("total_window_hours"),
+  // 0 = time-pinned callback, 1 = cutoff risk, 2 = scored pool. A stored
+  // column (not computed in ORDER BY) so it's indexable — same reasoning
+  // as priority_score.
+  tier: integer("tier").notNull().default(2),
+  leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
@@ -479,6 +491,8 @@ export const outreachTasks = pgTable("outreach_tasks", {
   index("outreach_tasks_active_partial_idx")
     .on(t.hospitalId, t.state)
     .where(sql`${t.state} IN ('PENDING','SCHEDULED','CALLING','RETRY_SCHEDULED','CALLBACK_SCHEDULED')`),
+  // Doc 06 claim query: ORDER BY tier ASC, priority_score DESC, created_at ASC.
+  index("outreach_tasks_claim_order_idx").on(t.hospitalId, t.state, t.tier, t.priorityScore, t.createdAt),
 ]);
 
 // R7: history of every outreach_task state change.
@@ -657,7 +671,14 @@ export const hospitalCapacity = pgTable("hospital_capacity", {
   maxConcurrentCalls: integer("max_concurrent_calls").notNull().default(10),
   currentActiveCalls: integer("current_active_calls").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("hospital_capacity_hospital_idx").on(t.hospitalId)]);
+}, (t) => [
+  uniqueIndex("hospital_capacity_hospital_idx").on(t.hospitalId),
+  // Doc 06 §2 — belt-and-suspenders: the claim transaction's conditional
+  // UPDATE already makes over-subscription impossible under concurrency,
+  // this CHECK guards against a future bug that writes the row some other
+  // way (e.g. a careless doc 03 config update setting the count directly).
+  check("hospital_capacity_bounds", sql`${t.currentActiveCalls} >= 0 AND ${t.currentActiveCalls} <= ${t.maxConcurrentCalls}`),
+]);
 
 // ---------------------------------------------------------------------------
 // Tables that carry hospital_id and therefore are subject to RLS in rls.sql.

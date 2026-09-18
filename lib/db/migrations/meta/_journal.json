@@ -29,6 +29,13 @@
       "when": 1789707817277,
       "tag": "0003_bouncy_doctor_doom",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789711451652,
+      "tag": "0004_good_colossus",
+      "breakpoints": true
     }
   ]
 }

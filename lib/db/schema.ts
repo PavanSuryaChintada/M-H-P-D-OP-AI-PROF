@@ -413,11 +413,45 @@ export const campaigns = pgTable("campaigns", {
   priority: integer("priority").notNull().default(0),
   maxRetries: integer("max_retries").notNull().default(3),
   capacityShare: integer("capacity_share"), // optional per-campaign cap within hospital capacity
+  protocolId: uuid("protocol_id").references(() => protocols.id), // doc 05 R2 — protocol binding
   startDate: timestamp("start_date", { withTimezone: true }),
   endDate: timestamp("end_date", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("campaigns_hospital_idx").on(t.hospitalId)]);
+
+// Doc 05 R1 — every campaign lifecycle move is guarded and logged here,
+// same pattern as outreach_task_state_transitions.
+export const campaignStateTransitions = pgTable("campaign_state_transitions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").notNull().references(() => campaigns.id),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  fromState: campaignStateEnum("from_state"),
+  toState: campaignStateEnum("to_state").notNull(),
+  reason: text("reason"),
+  actor: text("actor").notNull(),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("campaign_state_transitions_campaign_idx").on(t.campaignId)]);
+
+// Doc 05 R5/R6 — one row per (campaign, patient), overwritten on
+// re-evaluation (R4 resume recomputes rather than replaying). ERROR means
+// the rule engine itself threw for this patient — R6 requires this be
+// visible and recoverable, never a silent drop.
+export const eligibilityStatusEnum = pgEnum("eligibility_status", ["ELIGIBLE", "INELIGIBLE", "ERROR"]);
+
+export const eligibilityEvaluations = pgTable("eligibility_evaluations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  campaignId: uuid("campaign_id").notNull().references(() => campaigns.id),
+  patientId: uuid("patient_id").notNull().references(() => patients.id),
+  status: eligibilityStatusEnum("status").notNull(),
+  ruleResults: jsonb("rule_results"), // RuleResult[] — {ruleId, passed, reason, evidence}
+  errorMessage: text("error_message"),
+  evaluatedAt: timestamp("evaluated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("eligibility_evaluations_campaign_idx").on(t.campaignId),
+  uniqueIndex("eligibility_evaluations_campaign_patient_idx").on(t.campaignId, t.patientId),
+]);
 
 export const outreachTasks = pgTable("outreach_tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -658,4 +692,6 @@ export const TENANT_TABLE_NAMES = [
   "hospital_capacity",
   "user_hospital_roles",
   "escalation_contacts",
+  "campaign_state_transitions",
+  "eligibility_evaluations",
 ] as const;

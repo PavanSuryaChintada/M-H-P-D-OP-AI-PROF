@@ -86,7 +86,7 @@ declare
     'outreach_task_state_transitions','calls','call_turns','triage_results',
     'escalations','escalation_state_transitions','documentation_records',
     'events','notifications','audit_log','ai_usage','hospital_capacity',
-    'escalation_contacts'
+    'escalation_contacts','campaign_state_transitions','eligibility_evaluations'
   ];
 begin
   foreach t in array tenant_tables loop

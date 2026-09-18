@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 interface Hospital {
   id: string;
@@ -146,7 +147,8 @@ export default function HospitalDetailPage() {
     <main style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
       <h1>{hospital.name}</h1>
       <p>
-        {hospital.shortCode} · {hospital.timezone} · status: <strong>{hospital.status}</strong>
+        {hospital.shortCode} · {hospital.timezone} · status: <strong>{hospital.status}</strong> ·{" "}
+        <Link href={`/admin/hospitals/${hospital.id}/patients`}>Patients</Link>
       </p>
 
       {readiness && (

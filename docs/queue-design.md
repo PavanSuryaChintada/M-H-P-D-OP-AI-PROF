@@ -119,3 +119,37 @@ Every claimed task carries `lease_expires_at`, set to 5 minutes at claim time. `
 ## Duplicate prevention
 
 `calls` carries `UNIQUE (outreach_task_id, attempt_number)`; `createCall` uses `ON CONFLICT DO NOTHING` on that constraint, so a retried write for the same attempt is a no-op, not a duplicate row. Idempotency keys of the form `{task_id}:{attempt}:{action}` for every other side effect (EHR writes, notifications, escalations) are doc 20's territory once those side effects exist.
+
+---
+
+# Queue Simulation (Doc 08)
+
+## Scope decision: threshold compression, not a virtual clock
+
+The spec's R3 asks for a full injectable `Clock` interface (`now()`, `advance(ms)`) threaded through the queue layer, backoff, calling-hours checks and the reaper. Given the build's time budget, `sim/queue-sim.ts` takes a narrower, explicitly-scoped alternative: it runs the **real** `runSchedulerTick` / `claimNextTask` / `recordCallOutcome` / `runReaperTick` code unmodified, and instead compresses the queue layer's *absolute time constants* — the 2-hour tier cutoff, the 10-minute callback window, the 15/45/120/240-minute backoff table, the 5-minute claim lease — via optional override parameters added to `tier.ts`, `backoff.ts`, `recompute.ts`, `claim.ts`, `scheduler.ts` and `record-outcome.ts`. Every override defaults to the unchanged production value; `tests/queue-priority.test.ts`, `tests/queue-recompute.test.ts` and `tests/queue-backoff.test.ts` all still pass calling these functions with no arguments, which is the actual proof that production behavior is untouched. A 24h-equivalent run compresses into a few minutes of real wall time this way without any surgery to the SQL layer's use of `now()`.
+
+The simulation deliberately reuses the real scheduler/claim/state-machine/backoff code end to end — it does not reimplement queue logic to make it "simulation-friendly."
+
+## Dataset
+
+`sim/fixtures/queue-sim-patients.json`: 28 patients (6 low / 10 medium / 8 high / 4 critical risk), 2 campaigns weighted 7/3, tagged for each required proof point — 4 `nearDeadline`, 3 `willRequestCallback`, 3 `invalidNumber`, 4 `willDropMidCall`, 2 `willPresentRedFlag`. **Note:** the spec's R1 risk breakdown (6+10+8+4=28) and its Claude Code prompt's "26 patients" text disagree; the fixture follows the more specific, itemized R1 breakdown. `tests/queue-sim-fixture.test.ts` locks this composition against silent drift.
+
+## Runner
+
+`sim/queue-sim.ts` (`npm run sim [-- --seed N]`): creates a "Simulation Hospital" (capacity 3) directly via the repository layer — `persistTransition` moves both campaigns DRAFT→READY→RUNNING without going through doc 05's eligibility engine, since doc 08's job is to prove queue *mechanics*, not re-prove eligibility (which has its own tests). Patients are seeded through the real `ingestDischargeRecord` pipeline (parallelized, 8 concurrent lanes — sequential seeding of 28 patients at this environment's real Supabase-pooler latency would blow the time budget on setup alone). Each tick calls `runSchedulerTick` with the compressed thresholds, then resolves every claimed task's outcome according to its fixture tag, using `recordCallOutcome` for every outcome except escalation (`ESCALATED` isn't a modeled `CallOutcome` in doc 07's union — doc 13 owns that properly; the sim does the `CALLING→CONNECTED→ESCALATED` hop directly via the repository's transition functions, which is itself the correct, intended calling pattern, not a layering violation).
+
+One CRITICAL-risk claim is deliberately left unresolved (frozen, not passed to `recordCallOutcome`) to demonstrate the "kill worker" scenario (R5): a short lease (9s, vs. 5 min in production) expires, and `runReaperTick` reclaims it a few ticks later — proving reaper recovery without waiting on a real crashed process. Two other R5 buttons (`Drop next call`, `Spike capacity to 1`) are exercised structurally by the fixture's `willDropMidCall` tag and the fixed capacity-3 setup respectively; `Inject provider error` is not separately wired into the sim (PROVIDER_ERROR's "does not consume an attempt" behavior is already directly unit-tested in `tests/queue-record-outcome.test.ts`) — a scope cut, not an oversight.
+
+## R4 (live view) — reduced scope
+
+Rather than a full interactive dashboard, the sim writes its running state (tick, capacity, counters, recent events) to `sim/runs/live-state.json` after every tick; `GET /api/simulation/live` reads it, and `/simulation` polls that route once per second to render a capacity gauge, counters and a scrolling event stream. This is a deliberately minimal, file-polling implementation — appropriate for a demo harness, not a pattern used anywhere else in the codebase.
+
+## R7 — end-of-run assertions
+
+Printed PASS/FAIL for: capacity never exceeded, no duplicate claims, every invalid number reached `MANUAL_FOLLOW_UP`, no task left in an unrecognized state, at least one callback honored, the kill-worker scenario recovered via the reaper, at least one escalation observed. Full trace (every claim/outcome/escalation/reaper event with timestamps) written to `sim/runs/<seed>-<timestamp>.json`.
+
+**One real bug the live run caught that a mock never would have:** the first full run's "no duplicate claims" check used `` `${taskId}:${attemptCount}` `` as its dedup key. `CALLBACK_REQUESTED` (and `PROVIDER_ERROR`) have `consumesAttempt: false` in `outcome-policy.ts`, so `recordCallOutcome` reverses the claim-time attempt-count increment — meaning a patient's *first* callback request and the *later, entirely legitimate* claim that honors it can both land on `attempt_count=1`. That made two genuinely separate, correct claims look like a duplicate. Fixed by tracking an in-flight `Set` of task ids instead (added at claim, removed on outcome resolution or reaper recovery) — the actually-invariant property, since `claim.ts`'s state filter removes a task from the claimable set the instant it's claimed. The real duplicate-claim safety guarantee (concurrent workers, `FOR UPDATE SKIP LOCKED`) is doc 06's territory and is proven separately by `tests/queue-concurrency.test.ts` (50 workers vs. capacity 10); this assertion is checking the simulation's own single-worker sequential harness for a bug class that would be a genuine, different kind of mistake.
+
+**A second bug the live run caught:** the kill-worker demo's trigger condition (`!killWorkerDemoTaskId && risk === CRITICAL`) reset once the reaper recovered the frozen task, so the *same* task — now back in a claimable state, still CRITICAL risk — matched the trigger again on its next claim and froze forever. Fixed with a separate `killWorkerDemoUsed` flag that limits the demo to firing once per run, independent of the "currently frozen" state.
+
+Both were caught by watching a real run end-to-end, not by unit tests — the concrete demonstration of why R7's self-verifying assertions (and actually running the thing) matter more than a simulation that just animates.

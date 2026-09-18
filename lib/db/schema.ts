@@ -77,11 +77,14 @@ export const outreachTaskStateEnum = pgEnum("outreach_task_state", [
   "BUSY",
   "VOICEMAIL",
   "DROPPED",
+  "INVALID_NUMBER", // doc 07 §1
+  "DECLINED", // doc 07 §1
   "RETRY_SCHEDULED",
   "CALLBACK_SCHEDULED",
   "ESCALATED",
   "MANUAL_FOLLOW_UP",
   "FAILED",
+  "ELIGIBILITY_ERROR", // doc 07 §1 — a task-level re-evaluation failing; distinct from doc 05's eligibility_evaluations.status=ERROR, which happens before a task ever exists
 ]);
 
 // Active states used by the partial index below (doc 01 R6) and by the
@@ -124,7 +127,12 @@ export const callOutcomeEnum = pgEnum("call_outcome", [
   "DECLINED",
   "CALLBACK_REQUESTED",
   "ESCALATED",
-  "TECHNICAL_FAILURE",
+  // Doc 07 §2 splits "technical failure" into these two on purpose: a
+  // provider error must not consume the patient's retry budget, a network
+  // failure (still not the patient's fault, but not "ours" either in the
+  // same sense) does.
+  "NETWORK_FAILURE",
+  "PROVIDER_ERROR",
   "MANUAL_FOLLOW_UP",
 ]);
 
@@ -471,6 +479,7 @@ export const outreachTasks = pgTable("outreach_tasks", {
   claimedBy: text("claimed_by"), // worker instance id, set atomically on claim
   claimedAt: timestamp("claimed_at", { withTimezone: true }),
   heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }), // reaper uses this to detect stale claims
+  lastError: text("last_error"), // doc 07 §6/§2 — e.g. "lease_expired", or a technical-failure message
   // Doc 06 — snapshotted from the encounter at task-creation time rather
   // than joined live on every claim/recompute: the queue's hot path scores
   // hundreds of rows every 15s and shouldn't pay a join for data that's
@@ -516,14 +525,23 @@ export const calls = pgTable("calls", {
   outreachTaskId: uuid("outreach_task_id").notNull().references(() => outreachTasks.id),
   campaignId: uuid("campaign_id").notNull().references(() => campaigns.id),
   patientId: uuid("patient_id").notNull().references(() => patients.id),
+  // Doc 07 §7 — UNIQUE (outreach_task_id, attempt_number) is what makes a
+  // retried claim's call-record creation safe to retry itself.
+  attemptNumber: integer("attempt_number").notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   durationSeconds: integer("duration_seconds"),
   outcome: callOutcomeEnum("outcome"),
+  // Doc 07 §5 — questions answered, symptoms reported, protocol step index,
+  // last agent utterance. Read back on the next attempt after DROPPED so
+  // the Voice Intake Agent (doc 10) resumes instead of restarting the
+  // clinical questionnaire from zero.
+  partialState: jsonb("partial_state"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index("calls_hospital_idx").on(t.hospitalId),
   index("calls_outreach_task_idx").on(t.outreachTaskId),
+  uniqueIndex("calls_task_attempt_idx").on(t.outreachTaskId, t.attemptNumber),
 ]);
 
 export const callTurns = pgTable("call_turns", {

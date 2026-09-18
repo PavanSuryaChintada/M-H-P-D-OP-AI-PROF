@@ -4,6 +4,18 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 (later) — Doc 05: campaigns & eligibility
+
+**Tool:** Claude Code (Sonnet 5). Moving faster per user request (aiming for many docs today) — less exhaustive verification ceremony per doc, backend-first, UI deferred where the spec doesn't hard-require it.
+
+- Campaign lifecycle as a guarded state machine (`lib/campaigns/lifecycle.ts`), 8 eligibility rules as pure functions (`lib/campaigns/eligibility.ts`, unit tested individually per R5), pre-activation estimate as a pure heuristic (`lib/campaigns/estimate.ts`).
+- New tables: `campaign_state_transitions`, `eligibility_evaluations` (one row per campaign+patient, overwritten on re-evaluation — R4 resume recomputes rather than replaying).
+- **Real bug caught by testing:** `evaluatePatientForCampaign`'s own ERROR-handling path tried to persist an evaluation row for a patient id that didn't exist at all — but `eligibility_evaluations.patient_id` has a hard FK, so that write also failed, crashing instead of degrading gracefully. Fixed by checking patient existence before attempting any persistence and returning `null` (→ 404 at the route layer) for a truly nonexistent patient, distinct from "exists but has no encounter yet" (a real INELIGIBLE case).
+- Verified live: READY→RUNNING recomputes eligibility and persists per-rule breakdowns correctly; pausing a RUNNING campaign never touches existing `outreach_tasks` rows (doc 06 will build the scheduler that actually enforces "no new claims" on top of this).
+- Skipped for speed: campaign admin UI (drill-down panel, estimate panel) — API fully supports both, UI can follow later if time allows. Not a silent gap, a scope call given doc 05 is "Important" not "Highest" priority (doc 00 §1).
+
+---
+
 ## 2026-09-18 — Doc 04: patient & discharge data ingestion
 
 **Tool:** Claude Code (Sonnet 5).

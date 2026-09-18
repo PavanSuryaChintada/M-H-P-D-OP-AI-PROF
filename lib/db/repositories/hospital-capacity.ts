@@ -2,6 +2,13 @@ import { eq } from "drizzle-orm";
 import { withTenant, type TenantContext } from "../tenant";
 import { hospitalCapacity } from "../schema";
 
+export async function getHospitalCapacity(ctx: TenantContext) {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx.select().from(hospitalCapacity).where(eq(hospitalCapacity.hospitalId, ctx.hospitalId));
+    return row ?? null;
+  });
+}
+
 // doc 06/07 own the live currentActiveCalls tracking; doc 03 only needs to
 // keep maxConcurrentCalls in sync with hospital_config whenever it changes,
 // so the scheduler picks up a capacity change on its next tick without a

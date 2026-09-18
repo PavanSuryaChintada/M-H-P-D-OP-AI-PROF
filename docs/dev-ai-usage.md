@@ -4,6 +4,20 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 (later still) — Doc 12: clinical triage & structured output validation
+
+**Tool:** Claude Code (Sonnet 5).
+
+- Built the validation pipeline (`lib/ai/triage/run-assessor.ts`), the hallucination guard (`lib/ai/triage/verify.ts`), and confidence forcing (`lib/ai/triage/uncertainty.ts`) on top of the `TriageResult` schema and the two prompts (`clinical-triage-v1`, `second-assessor-v1`) already written in doc 09.
+- **Real design gap found and fixed while wiring the repair loop:** `managed-call.ts`'s `runStructured()` (doc 09) collapsed every failure — network timeout, exhausted retries, schema validation — into one generic `PROVIDER_ERROR`, with no way to tell a repairable validation failure from a genuine provider outage. Doc 12 R3's repair step needs exactly that distinction (feed the error back and retry vs. nothing to correct, surface immediately). Added `isValidationFailure?: boolean` to `ManagedResult`'s failure shape rather than duplicating retry logic in doc 12's own code.
+- Confirmed the doc 12 → doc 13 handoff needed zero new escalation code: a thrown `TriageValidationFailedError` (or a raw provider error) already becomes an `ASSESSOR_FAILURE` outcome through doc 13's existing `settleAssessors()`/`Promise.allSettled` path, which the consensus algorithm's rule 4 already escalates on. Verified this end to end in `tests/triage-run-assessor.test.ts`'s last case rather than just asserting it in isolation.
+- **Schema gap found and fixed** (same pattern as `ai_usage` in doc 09 and `escalations`/`escalation_assessments` in doc 13): `triage_results` (doc 01) was missing everything doc 12 R7 explicitly requires for traceability — raw output, parsed result, prompt version, model name, retrieval chunk ids, validation attempt count, latency, cost. Added all eight via an additive migration; `modelProvider` (already present, stores the vendor id) is kept separate from the new `modelName` (the actual model string) since they answer different questions.
+- **Caught my own dead-parameter bug while touching `run-consensus.ts` again:** `settleAssessors()`'s first parameter (`assessorId: string`) was never used in the function body — a leftover from an earlier draft, not caught by lint (unused function arguments aren't flagged the way unused locals are). Removed it while in the file for a legitimate reason rather than leaving it as debt for later.
+- Tests (18 total, all passing): `tests/triage-verify.test.ts` (fabricated quote rejected, in-bounds vs. out-of-bounds observation spans, missing turn_index), `tests/triage-uncertainty.test.ts` (all three forcing conditions independently, plus the "left alone" case), `tests/triage-run-assessor.test.ts` against the live DB (malformed-JSON-equivalent repaired, twice-malformed → `TriageValidationFailedError`, fabricated quote repaired vs. never corrected, and the full doc 12→13 handoff). Full regression check (`tests/architecture.test.ts`, `tests/ai-tool-gateway.test.ts`, `tests/consensus.test.ts`, `tests/escalation-consensus-integration.test.ts` — 28 tests) still passes after the `managed-call.ts`/`run-consensus.ts` edits.
+- `docs/clinical-triage.md` written.
+
+---
+
 ## 2026-09-18 (later still) — Doc 13: escalation consensus & clinical safety (built ahead of doc 12)
 
 **Tool:** Claude Code (Sonnet 5).

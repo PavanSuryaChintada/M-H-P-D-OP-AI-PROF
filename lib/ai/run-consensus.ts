@@ -19,7 +19,6 @@ import { createEscalationFromConsensus, type CreateEscalationInput } from "../db
  * consensus.ts consumes.
  */
 export async function settleAssessors(
-  assessorId: string,
   runners: { assessorId: string; run: () => Promise<TriageResult> }[],
 ): Promise<AssessorOutcome[]> {
   const settled = await Promise.allSettled(runners.map((r) => r.run()));

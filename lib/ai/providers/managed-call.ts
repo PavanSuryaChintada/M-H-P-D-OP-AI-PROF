@@ -24,7 +24,7 @@ export interface ManagedCallOptions {
 
 export type ManagedResult<T> =
   | { ok: true; data: T; tokensIn: number; tokensOut: number }
-  | { ok: false; code: "PROVIDER_ERROR"; message: string };
+  | { ok: false; code: "PROVIDER_ERROR"; message: string; isValidationFailure?: boolean };
 
 function withTimeout<T>(promise: Promise<T>, ms: number, providerId: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -131,7 +131,12 @@ export async function runStructured<T>(
       validationOutcome: isValidationFailure ? "failed" : undefined,
       error: outcome.error instanceof Error ? outcome.error.message : String(outcome.error),
     });
-    return { ok: false, code: "PROVIDER_ERROR", message: "provider call failed after retries" };
+    return {
+      ok: false,
+      code: "PROVIDER_ERROR",
+      message: outcome.error instanceof Error ? outcome.error.message : "provider call failed after retries",
+      isValidationFailure,
+    };
   }
 
   await recordAiUsage(opts.ctx, {

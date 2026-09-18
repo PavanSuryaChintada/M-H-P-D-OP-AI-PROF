@@ -390,8 +390,16 @@ export const protocols = pgTable("protocols", {
   hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
   title: text("title").notNull(),
   category: text("category"),
-  content: text("content").notNull(),
+  content: text("content").notNull(), // the source document — chunking/retrieval reads this
   version: integer("version").notNull().default(1),
+  // Doc 11 R1 — the structured form (follow_up_questions[], red_flags[],
+  // approved_guidance[], escalation_rules[]), zod-validated on write
+  // (lib/protocols/schema.ts). Added after doc 01's original schema, which
+  // only stored the source text — the rule engine (doc 13) reads this,
+  // never re-parses the free text.
+  structuredContent: jsonb("structured_content"),
+  specialty: text("specialty"),
+  effectiveFrom: timestamp("effective_from", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("protocols_hospital_idx").on(t.hospitalId)]);
@@ -403,6 +411,15 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   sourceLabel: text("source_label").notNull(),
   content: text("content").notNull(),
   embedding: vector(1536)("embedding"),
+  // Doc 11 R3/R6 — chunk metadata + the citation shape
+  // {chunk_id, protocol_id, protocol_version, section, text} needs to
+  // resolve without a second query. protocolVersion is snapshotted at
+  // chunk-creation time (not re-joined from protocols.version, which can
+  // change) so a citation always points at the exact text version it was
+  // generated from.
+  section: text("section"),
+  heading: text("heading"),
+  protocolVersion: integer("protocol_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("knowledge_chunks_hospital_idx").on(t.hospitalId)]);
 

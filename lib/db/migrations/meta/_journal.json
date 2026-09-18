@@ -71,6 +71,13 @@
       "when": 1789751947271,
       "tag": "0009_colossal_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789752632438,
+      "tag": "0010_shocking_sharon_carter",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,41 @@
+{
+  "_note": "Doc 08 R1's risk breakdown (6 low + 10 medium + 8 high + 4 critical = 28) and its Claude Code prompt's '26 patients' don't agree; this fixture follows the detailed breakdown (28) since it's the more specific instruction, and this discrepancy is logged in docs/dev-ai-usage.md rather than silently resolved.",
+  "hospitalShortCode": "SIM",
+  "campaigns": [
+    { "key": "A", "name": "Simulation Campaign A", "weight": 7 },
+    { "key": "B", "name": "Simulation Campaign B", "weight": 3 }
+  ],
+  "patients": [
+    { "mrn": "SIM-001", "riskLevel": "LOW", "campaign": "A", "nearDeadline": true },
+    { "mrn": "SIM-002", "riskLevel": "LOW", "campaign": "A" },
+    { "mrn": "SIM-003", "riskLevel": "LOW", "campaign": "B" },
+    { "mrn": "SIM-004", "riskLevel": "LOW", "campaign": "A" },
+    { "mrn": "SIM-005", "riskLevel": "LOW", "campaign": "B" },
+    { "mrn": "SIM-006", "riskLevel": "LOW", "campaign": "A" },
+
+    { "mrn": "SIM-007", "riskLevel": "MEDIUM", "campaign": "A", "nearDeadline": true },
+    { "mrn": "SIM-008", "riskLevel": "MEDIUM", "campaign": "A" },
+    { "mrn": "SIM-009", "riskLevel": "MEDIUM", "campaign": "B" },
+    { "mrn": "SIM-010", "riskLevel": "MEDIUM", "campaign": "A" },
+    { "mrn": "SIM-011", "riskLevel": "MEDIUM", "campaign": "A" },
+    { "mrn": "SIM-012", "riskLevel": "MEDIUM", "campaign": "B" },
+    { "mrn": "SIM-013", "riskLevel": "MEDIUM", "campaign": "A", "invalidNumber": true },
+    { "mrn": "SIM-014", "riskLevel": "MEDIUM", "campaign": "A", "invalidNumber": true },
+    { "mrn": "SIM-015", "riskLevel": "MEDIUM", "campaign": "B", "invalidNumber": true },
+    { "mrn": "SIM-016", "riskLevel": "MEDIUM", "campaign": "A" },
+
+    { "mrn": "SIM-017", "riskLevel": "HIGH", "campaign": "A", "willRequestCallback": true },
+    { "mrn": "SIM-018", "riskLevel": "HIGH", "campaign": "A", "willRequestCallback": true },
+    { "mrn": "SIM-019", "riskLevel": "HIGH", "campaign": "B", "willRequestCallback": true },
+    { "mrn": "SIM-020", "riskLevel": "HIGH", "campaign": "A", "willDropMidCall": true },
+    { "mrn": "SIM-021", "riskLevel": "HIGH", "campaign": "A", "willDropMidCall": true },
+    { "mrn": "SIM-022", "riskLevel": "HIGH", "campaign": "B", "willDropMidCall": true },
+    { "mrn": "SIM-023", "riskLevel": "HIGH", "campaign": "A", "willDropMidCall": true },
+    { "mrn": "SIM-024", "riskLevel": "HIGH", "campaign": "A" },
+
+    { "mrn": "SIM-025", "riskLevel": "CRITICAL", "campaign": "A", "nearDeadline": true },
+    { "mrn": "SIM-026", "riskLevel": "CRITICAL", "campaign": "A", "nearDeadline": true },
+    { "mrn": "SIM-027", "riskLevel": "CRITICAL", "campaign": "B", "willPresentRedFlag": true },
+    { "mrn": "SIM-028", "riskLevel": "CRITICAL", "campaign": "A", "willPresentRedFlag": true }
+  ]
+}

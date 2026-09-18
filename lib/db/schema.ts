@@ -251,6 +251,9 @@ export const patients = pgTable("patients", {
   uniqueIndex("patients_hospital_mrn_idx").on(t.hospitalId, t.mrn),
 ]);
 
+// Doc 04 R2 — risk mix the queue's priority scoring (doc 06) reads.
+export const riskLevelEnum = pgEnum("risk_level", ["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+
 export const encounters = pgTable("encounters", {
   id: uuid("id").primaryKey().defaultRandom(),
   hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
@@ -259,12 +262,23 @@ export const encounters = pgTable("encounters", {
   admissionAt: timestamp("admission_at", { withTimezone: true }),
   dischargeAt: timestamp("discharge_at", { withTimezone: true }),
   dischargeInstructions: text("discharge_instructions"),
+  // Doc 04 R2/R4/R5 — properties of the discharge itself, not a clinical
+  // observation, so they live here rather than in a jsonb Observation value
+  // where doc 05/06's eligibility and priority queries couldn't index them.
+  riskLevel: riskLevelEnum("risk_level"),
+  followUpWindowHours: integer("follow_up_window_hours"),
+  // Doc 04 R5 idempotency key — the hospital feed's own message id for this
+  // discharge. Unique per hospital when present; NULL for encounters not
+  // created through the ingestion pipeline (Postgres treats multiple NULLs
+  // in a unique index as distinct, so that's not a conflict).
+  sourceMessageId: text("source_message_id"),
   fhirResourceType: text("fhir_resource_type").notNull().default("Encounter"),
   sourcePayload: jsonb("source_payload"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index("encounters_hospital_idx").on(t.hospitalId),
   index("encounters_patient_idx").on(t.patientId),
+  uniqueIndex("encounters_hospital_source_message_idx").on(t.hospitalId, t.sourceMessageId),
 ]);
 
 export const conditions = pgTable("conditions", {

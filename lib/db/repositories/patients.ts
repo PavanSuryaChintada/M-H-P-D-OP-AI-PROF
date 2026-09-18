@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { withTenant, type TenantContext } from "../tenant";
 import { patients } from "../schema";
 
@@ -31,6 +31,17 @@ export async function createPatient(ctx: TenantContext, input: CreatePatientInpu
 export async function getPatientById(ctx: TenantContext, patientId: string) {
   return withTenant(ctx, async (tx) => {
     const [row] = await tx.select().from(patients).where(eq(patients.id, patientId));
+    return row ?? null;
+  });
+}
+
+/** Doc 04 — a hospital feed re-sends the same patient (by MRN) across multiple discharges; find-or-create keyed on this. */
+export async function findPatientByMrn(ctx: TenantContext, mrn: string) {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(patients)
+      .where(and(eq(patients.hospitalId, ctx.hospitalId), eq(patients.mrn, mrn)));
     return row ?? null;
   });
 }

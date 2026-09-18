@@ -15,6 +15,7 @@
     "seed:hospitals": "tsx scripts/seed-demo-hospitals.ts",
     "seed:demo-users": "tsx scripts/seed-demo-users.ts",
     "seed:patients": "tsx sim/generate-patients.ts",
+    "sim": "tsx sim/queue-sim.ts",
     "seed:demo": "npm run db:migrate && npm run db:rls && npm run seed:hospitals && npm run seed:demo-users && npm run seed:patients",
     "test": "vitest run"
   },

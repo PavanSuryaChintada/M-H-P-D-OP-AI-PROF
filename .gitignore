@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# doc 08 — per-run simulation output (trace exports, live dashboard state);
+# sim/fixtures/queue-sim-patients.json is the committed input, not this.
+sim/runs/*
+!sim/runs/.gitkeep

@@ -64,6 +64,13 @@
       "when": 1789750746915,
       "tag": "0008_giant_black_cat",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789751947271,
+      "tag": "0009_colossal_meteorite",
+      "breakpoints": true
     }
   ]
 }

@@ -566,6 +566,18 @@ export const triageResults = pgTable("triage_results", {
   confidence: numeric("confidence", { precision: 4, scale: 3 }),
   escalationRecommended: boolean("escalation_recommended").notNull(),
   modelProvider: text("model_provider").notNull(), // "anthropic" | "openai" | "rule-engine"
+  // Doc 12 R7 — traceability columns, added after doc 01's original schema
+  // (which predates doc 12's spec): raw model output, parsed result,
+  // prompt version, model name (modelProvider above is the vendor id, not
+  // this), retrieval chunk ids, validation attempt count, latency, cost.
+  modelName: text("model_name"),
+  promptVersion: text("prompt_version"),
+  rawOutput: jsonb("raw_output"),
+  parsedResult: jsonb("parsed_result"),
+  retrievalChunkIds: jsonb("retrieval_chunk_ids"),
+  validationAttempts: integer("validation_attempts").notNull().default(1),
+  latencyMs: integer("latency_ms"),
+  estimatedCostUsd: numeric("estimated_cost_usd", { precision: 10, scale: 6 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("triage_results_hospital_idx").on(t.hospitalId)]);
 

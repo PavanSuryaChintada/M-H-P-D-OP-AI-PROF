@@ -2,7 +2,7 @@
 // per-campaign ceilings, then claim in a loop until capacity is exhausted
 // or nothing is claimable.
 
-import { recomputeScores } from "./recompute";
+import { recomputeScores, type RecomputeThresholds } from "./recompute";
 import { claimNextTask, type ClaimedTask, DEFAULT_PATIENT_CALL_COOLDOWN_MINUTES } from "./claim";
 import { listRunningCampaignWeightsByHospitalId } from "../db/repositories/campaigns";
 import { getHospitalCapacityByHospitalId } from "../db/repositories/hospital-capacity";
@@ -31,8 +31,11 @@ export async function runSchedulerTick(
   hospitalId: string,
   workerId: string,
   cooldownMinutes: number = DEFAULT_PATIENT_CALL_COOLDOWN_MINUTES,
+  recomputeThresholds?: RecomputeThresholds,
+  /** doc 08's compressed-timeline simulation only — see claim.ts. Production never passes this. */
+  leaseMinutesOverride?: number,
 ): Promise<TickResult> {
-  await recomputeScores(hospitalId);
+  await recomputeScores(hospitalId, recomputeThresholds);
 
   const runningCampaigns = await listRunningCampaignWeightsByHospitalId(hospitalId);
   if (runningCampaigns.length === 0) return { claimed: [], freeCapacityAtStart: 0 };
@@ -50,7 +53,7 @@ export async function runSchedulerTick(
     const eligibleCampaignIds = [...remainingCeiling.entries()].filter(([, n]) => n > 0).map(([id]) => id);
     if (eligibleCampaignIds.length === 0) break;
 
-    const task = await claimNextTask(hospitalId, workerId, eligibleCampaignIds, cooldownMinutes);
+    const task = await claimNextTask(hospitalId, workerId, eligibleCampaignIds, cooldownMinutes, leaseMinutesOverride);
     if (!task) break; // nothing claimable among currently-eligible campaigns
 
     claimed.push(task);

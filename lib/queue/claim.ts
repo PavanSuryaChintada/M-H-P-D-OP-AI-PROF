@@ -35,8 +35,11 @@ export async function claimNextTask(
   workerId: string,
   eligibleCampaignIds: string[],
   cooldownMinutes: number = DEFAULT_PATIENT_CALL_COOLDOWN_MINUTES,
+  /** doc 08's compressed-timeline simulation only — see tier.ts's TierThresholds. Production never passes this; default is unchanged (5 min). A short lease lets the sim's "kill worker" scenario trigger the reaper within seconds instead of 5 real minutes. */
+  leaseMinutesOverride?: number,
 ): Promise<ClaimedTask | null> {
   if (eligibleCampaignIds.length === 0) return null;
+  const leaseMinutes = leaseMinutesOverride ?? LEASE_MINUTES;
 
   return db.transaction(async (tx) => {
     // RLS is armed for hospital_id only — this runs as a worker process,
@@ -87,7 +90,7 @@ export async function claimNextTask(
       update outreach_tasks t
          set state = 'CALLING',
              claimed_by = ${workerId},
-             lease_expires_at = now() + (${LEASE_MINUTES} || ' minutes')::interval,
+             lease_expires_at = now() + (${leaseMinutes} || ' minutes')::interval,
              attempt_count = attempt_count + 1,
              claimed_at = now(),
              updated_at = now()

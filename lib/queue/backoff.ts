@@ -30,6 +30,9 @@ export interface BackoffInput {
   patientPreference?: PatientPreference;
   /** injectable for deterministic tests; defaults to Math.random */
   rng?: () => number;
+  /** doc 08's compressed-timeline simulation only — see tier.ts's TierThresholds for why. Production never passes these; defaults are [15,45,120,240]/15. */
+  baseMinutesOverride?: number[];
+  searchStepMinutesOverride?: number;
 }
 
 export type BackoffResult = { scheduledFor: Date } | { scheduledFor: null; reason: "WINDOW_WOULD_EXPIRE" };
@@ -51,23 +54,25 @@ function withinPreference(minutesSinceMidnight: number, pref?: PatientPreference
 
 export function computeBackoff(input: BackoffInput): BackoffResult {
   const rng = input.rng ?? Math.random;
+  const baseMinutesTable = input.baseMinutesOverride ?? BASE_BACKOFF_MINUTES;
+  const searchStepMinutes = input.searchStepMinutesOverride ?? SEARCH_STEP_MINUTES;
 
   const minutes =
     input.fixedBackoffMinutes != null
       ? input.fixedBackoffMinutes
-      : jitteredMinutes(BASE_BACKOFF_MINUTES[Math.min(Math.max(input.attemptNumber - 1, 0), BASE_BACKOFF_MINUTES.length - 1)], rng);
+      : jitteredMinutes(baseMinutesTable[Math.min(Math.max(input.attemptNumber - 1, 0), baseMinutesTable.length - 1)], rng);
 
   let candidate = new Date(input.now.getTime() + minutes * 60_000);
 
-  // Step forward in 15-minute increments until both calling hours and the
-  // patient's stated preference are satisfied. Simple and correct at this
-  // scale rather than solving the interval intersection analytically.
-  const maxSteps = (SEARCH_MAX_DAYS * 24 * 60) / SEARCH_STEP_MINUTES;
+  // Step forward until both calling hours and the patient's stated
+  // preference are satisfied. Simple and correct at this scale rather than
+  // solving the interval intersection analytically.
+  const maxSteps = (SEARCH_MAX_DAYS * 24 * 60) / searchStepMinutes;
   for (let i = 0; i < maxSteps; i++) {
     const inCallingHours = isWithinCallingHours({ callingHours: input.callingHours }, input.timezone, candidate);
     const local = toLocalTime(candidate, input.timezone);
     if (inCallingHours && withinPreference(local.minutesSinceMidnight, input.patientPreference)) break;
-    candidate = new Date(candidate.getTime() + SEARCH_STEP_MINUTES * 60_000);
+    candidate = new Date(candidate.getTime() + searchStepMinutes * 60_000);
   }
 
   if (candidate.getTime() > input.windowEnd.getTime()) {

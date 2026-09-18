@@ -28,6 +28,11 @@ export interface RecordOutcomeInput {
   callbackRequestedAt?: Date;
   patientPreference?: PatientPreference;
   now?: Date;
+  /** doc 08's compressed-timeline simulation only — see backoff.ts. */
+  baseMinutesOverride?: number[];
+  searchStepMinutesOverride?: number;
+  /** doc 08's compressed-timeline simulation only — outcomes with a *fixed* policy.backoffMinutes (BUSY, DROPPED) bypass baseMinutesOverride entirely since they never read the base table; this overrides that fixed value instead. Production never passes this. */
+  fixedBackoffMinutesOverride?: number;
 }
 
 export interface RecordOutcomeResult {
@@ -137,12 +142,15 @@ export async function recordCallOutcome(
   const config = (hospital?.config as HospitalConfig | null) ?? null;
   const backoff = computeBackoff({
     attemptNumber: effectiveAttemptCount,
-    fixedBackoffMinutes: typeof policy.backoffMinutes === "number" ? policy.backoffMinutes : undefined,
+    fixedBackoffMinutes:
+      input.fixedBackoffMinutesOverride ?? (typeof policy.backoffMinutes === "number" ? policy.backoffMinutes : undefined),
     now,
     windowEnd: task.clinicalDeadlineAt,
     timezone: hospital?.timezone ?? "UTC",
     callingHours: config?.callingHours ?? {},
     patientPreference: input.patientPreference,
+    baseMinutesOverride: input.baseMinutesOverride,
+    searchStepMinutesOverride: input.searchStepMinutesOverride,
   });
 
   if (backoff.scheduledFor === null) {

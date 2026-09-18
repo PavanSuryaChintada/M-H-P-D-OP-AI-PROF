@@ -20,7 +20,18 @@ const RISK_CASE = sql`
   end
 `;
 
-export async function recomputeScores(hospitalId: string): Promise<number> {
+export interface RecomputeThresholds {
+  /** doc 08's compressed-timeline simulation only — see tier.ts's TierThresholds. Production never passes these. */
+  cutoffAbsoluteHours?: number;
+  cutoffRatio?: number;
+  callbackWindowSeconds?: number;
+}
+
+export async function recomputeScores(hospitalId: string, thresholds: RecomputeThresholds = {}): Promise<number> {
+  const cutoffAbsoluteHours = thresholds.cutoffAbsoluteHours ?? 2;
+  const cutoffRatio = thresholds.cutoffRatio ?? 0.2;
+  const callbackWindowSeconds = thresholds.callbackWindowSeconds ?? 600;
+
   const result = await withHospitalContext(hospitalId, (tx) => tx.execute(sql`
     with campaign_weights as (
       select id, greatest(priority, 0) as weight,
@@ -48,11 +59,11 @@ export async function recomputeScores(hospitalId: string): Promise<number> {
         -- tier: 0 = due callback (+/-10 min), 1 = cutoff risk, 2 = scored pool
         case
           when t.callback_requested_at is not null
-               and abs(extract(epoch from (t.callback_requested_at - now()))) <= 600
+               and abs(extract(epoch from (t.callback_requested_at - now()))) <= ${callbackWindowSeconds}
             then 0
-          when (extract(epoch from (t.clinical_deadline_at - now())) / 3600.0) < 2
+          when (extract(epoch from (t.clinical_deadline_at - now())) / 3600.0) < ${cutoffAbsoluteHours}
                or (extract(epoch from (t.clinical_deadline_at - now())) / 3600.0)
-                  / nullif(t.total_window_hours, 0) < 0.20
+                  / nullif(t.total_window_hours, 0) < ${cutoffRatio}
             then 1
           else 2
         end as tier

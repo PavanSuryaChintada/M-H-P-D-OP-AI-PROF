@@ -4,6 +4,25 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 
 ---
 
+## 2026-09-18 (later still) — Doc 10: voice intake agent & call simulator
+
+**Tool:** Claude Code (Sonnet 5).
+
+- **Deliberate scope decision, stated up front:** built the conversation as a deterministic state machine (`lib/voice-intake/run-call.ts`) rather than a freeform LLM-driven chat. R1's own framing ("structured outreach, not a chatbot") supports this directly — every safety-critical decision (stop, refuse, escalate, end) is code, never left to a model to get right live. Doc 09's `voice-intake-v1` prompt and provider abstraction remain a drop-in swap for natural-language phrasing variation later, without touching this flow's structure.
+- `lib/voice-intake/detectors.ts`: deterministic keyword checks (emergency, advice-request, wrong-person, refusal, not-convenient) run on every patient turn regardless of state — same "independent of the LLM" reasoning as doc 13's rule engine, and what makes the prompt-injection test provably pass rather than just probably pass (the flow structurally cannot be redirected by patient text, since nothing interprets that text as instructions in the first place).
+- **Two real state-machine bugs found by running the actual test suite, not by re-reading the graph:**
+  1. `finishWithOutcome()` initially connected (`CALLING→CONNECTED`) before recording every outcome, copying doc 08's pattern for `COMPLETED`/`CALLBACK_SCHEDULED`. But `DECLINED` is reachable directly from `CALLING`, and `CONNECTED` does not list `DECLINED` as a valid target at all — connecting first and then declining is itself illegal. Two persona tests (`refuser`, `wrong_person`) failed with `IllegalTaskTransitionError` immediately, which is exactly what should happen for a real bug — fixed by branching the hop on the outcome instead of applying it unconditionally.
+  2. The very first agent line ("...regarding your recent discharge") was spoken before identity verification completed — a genuine, if minor, disclosure-before-verification bug that the `wrong_person` acceptance-criteria test caught directly. Fixed by moving all clinical/purpose context to step 2, which only runs after identity is confirmed.
+- **A third bug, in the test setup, not the code under test:** the test hospital never had `updateHospitalConfig` called, so its calling-hours config was empty — every callback request was rejected as `OUTSIDE_CALLING_HOURS` regardless of the actual time. Fixed by seeding an always-open `HospitalConfigSchema`-validated config in `beforeAll`, matching the pattern already established in doc 07's own test suite.
+- **Timeouts, correctly diagnosed as latency, not a hang:** the first full test run had 6 of 11 tests time out at exactly vitest's 30s default. Traced to which personas actually trigger the follow-up-question probing branch (extra sequential DB round trips per probe) versus which don't (`cooperative`/`terse` answer "no" and skip probing, and passed immediately) — confirmed alive via a direct DB check showing the test's patient rows being created in real time during the "stalled" window, then fixed by raising the per-test timeout to 90s rather than touching any flow logic.
+- `sim/call-simulator.ts`: the nine required personas plus a tenth (`injection`) built specifically to exercise the prompt-injection deliverable — the agent side is the real `runCall()` orchestration throughout; only the patient's scripted words are canned, so every transcript is genuine.
+- **Schema gap found and fixed** (same pattern as every other doc this session): `call_turns` (doc 01) had no `latency_ms` column, which doc 10 R3 explicitly requires. Additive migration.
+- The emergency fast path never calls `create_escalation` directly (doc 13's hard rule) — it runs the real rule engine plus a mock LLM seat deliberately returning `routine`, proving the escalation fires on the deterministic engine alone rather than assuming it would.
+- Tests (`tests/voice-intake.test.ts`, 11/11 passing): every persona reaches its expected outcome; the emergency persona terminates within two turns and produces a real, persisted escalation id (acceptance criteria); the wrong-person persona's transcript never contains "discharge" or any follow-up question text (acceptance criteria); advice requests get the scripted refusal; the injection persona completes normally with every question asked in order and no diagnosis ever stated. Full regression (`tests/architecture.test.ts`, `tests/consensus.test.ts`, `tests/escalation-consensus-integration.test.ts`, `tests/triage-run-assessor.test.ts` — 23 tests) still green after the doc 07 state-machine usage fixes.
+- `docs/voice-intake.md` written. Transcript viewer UI deferred to doc 17/18's reviewer and dashboard screens, per this build's established frontend split.
+
+---
+
 ## 2026-09-18 (later still) — Doc 11: clinical protocols & tenant-aware retrieval
 
 **Tool:** Claude Code (Sonnet 5).

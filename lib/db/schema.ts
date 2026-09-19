@@ -205,10 +205,10 @@ export const hospitals = pgTable("hospitals", {
   status: hospitalStatusEnum("status").notNull().default("CREATED"),
   // Doc 03 R2 — operating config the scheduler and AI later read. Shape is
   // validated by lib/hospitals/config-schema.ts (zod) on every write, not
-  // by a Postgres constraint — kept here as jsonb because doc 00's own
-  // Claude Code prompt asks for "hospital_config jsonb validated by zod",
-  // and because its shape (retry backoff arrays, per-weekday hours) doesn't
-  // map cleanly onto flat columns.
+  // by a Postgres constraint — kept here as jsonb per doc 00's spec
+  // ("hospital_config jsonb validated by zod"), and because its shape
+  // (retry backoff arrays, per-weekday hours) doesn't map cleanly onto
+  // flat columns.
   config: jsonb("config"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

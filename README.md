@@ -81,13 +81,13 @@ Safety evaluation harness (doc 21) — `npm run eval:safety`: 60 cases, 0.00% fa
 
 # Spec Pack — Multi-Hospital Post-Discharge Outreach Platform
 
-26 segmented specs for a 3–4 day solo prototype. Each is self-contained and ends with a copy-paste Claude Code prompt.
+26 segmented specs for a 3–4 day solo prototype. Each is self-contained.
 
 ## How to use
-1. Read `00-MASTER-BRIEF.md`. It contains the stack decision, the build order, and a **standing context block** to paste at the top of every Claude Code session.
+1. Read `00-MASTER-BRIEF.md`. It contains the stack decision, the build order, and a standing context block for each session.
 2. Work the docs in build order, not numeric order. Doc 00 §3 gives the schedule.
-3. One doc = one Claude Code session. Paste the standing context block, then the doc's prompt.
-4. Log every prompt you use into `docs/dev-ai-usage.md` as you go — it is submission deliverable 8 and cannot be reconstructed later.
+3. One doc per session.
+4. Log notable decisions into `docs/dev-ai-usage.md` as you go — it's submission deliverable 8 and can't be reconstructed later.
 
 ## Order of importance (PRD §34)
 **Critical:** 01, 02, 06, 07, 08, 12, 13, 21

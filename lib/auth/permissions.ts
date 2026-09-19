@@ -15,10 +15,10 @@ export type Action =
   | "hospital:manage_users"
   | "hospital:configure" // doc 03 R1/R2 — operating config, escalation
   // contacts, readiness/status changes. Same PA-only scope as
-  // hospital:create per doc 03's own Claude Code prompt ("CRUD for
-  // hospitals, restricted to PLATFORM_ADMIN"), kept as a separate action
-  // rather than reusing hospital:create so a PATCH isn't gated by an
-  // action named for POST.
+  // hospital:create per doc 03's own spec ("CRUD for hospitals,
+  // restricted to PLATFORM_ADMIN"), kept as a separate action rather
+  // than reusing hospital:create so a PATCH isn't gated by an action
+  // named for POST.
   | "discharge:upload"
   | "protocol:manage"
   | "campaign:manage" // create / start / pause

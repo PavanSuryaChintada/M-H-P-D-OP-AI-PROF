@@ -1,6 +1,6 @@
 // Doc 03 deliverable: "Seeded demo hospitals: at least 3, different
 // timezones, different capacity ... the low-capacity one makes the queue
-// demo vivid." Exact 3 from doc 03's own Claude Code prompt.
+// demo vivid." Exact 3 from doc 03's own spec.
 //
 // Each hospital gets full operating config + one HOSPITAL_ADMIN + one
 // escalation contact, but is left at CONFIGURED, not READY — readiness

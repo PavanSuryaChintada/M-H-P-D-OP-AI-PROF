@@ -1,5 +1,5 @@
 {
-  "_note": "Doc 08 R1's risk breakdown (6 low + 10 medium + 8 high + 4 critical = 28) and its Claude Code prompt's '26 patients' don't agree; this fixture follows the detailed breakdown (28) since it's the more specific instruction, and this discrepancy is logged in docs/dev-ai-usage.md rather than silently resolved.",
+  "_note": "Doc 08 R1's risk breakdown (6 low + 10 medium + 8 high + 4 critical = 28) and its own '26 patients' line don't agree; this fixture follows the detailed breakdown (28) since it's the more specific instruction, and this discrepancy is logged in docs/dev-ai-usage.md rather than silently resolved.",
   "hospitalShortCode": "SIM",
   "campaigns": [
     { "key": "A", "name": "Simulation Campaign A", "weight": 7 },

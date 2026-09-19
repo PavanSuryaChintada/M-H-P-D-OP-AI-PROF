@@ -1,4 +1,4 @@
-// Doc 12 R5 / Claude Code prompt step 4 — confidence is not decorative.
+// Doc 12 R5 — confidence is not decorative.
 // Three independent conditions force a classification down to "uncertain"
 // even when the model itself said "routine": low confidence on that
 // classification, too much of the protocol left unanswered, or the call
@@ -10,7 +10,7 @@ import type { TriageResult } from "../schemas/triage";
 
 /** Doc 12 R5's own stated threshold — confidence < 0.6 on a routine classification is not trustworthy enough to accept as-is. */
 export const LOW_CONFIDENCE_THRESHOLD = 0.6;
-/** Doc 12 Claude Code prompt step 4 — more than 30% of protocol questions left unanswered. */
+/** Doc 12 R5 — more than 30% of protocol questions left unanswered. */
 export const MISSING_INFORMATION_RATIO_THRESHOLD = 0.3;
 
 export interface UncertaintyForcingOptions {

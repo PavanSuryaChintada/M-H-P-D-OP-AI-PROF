@@ -94,6 +94,29 @@ export async function listProtocolVersions(ctx: TenantContext) {
   );
 }
 
+/** Doc 19 R3 — "call failures, notification failures, EHR failures" plus stuck-task count, reused directly rather than re-derived: doc 18 already computes most of these. */
+export interface OperationalMetrics {
+  callFailures: number;
+  notificationFailures: number;
+  stuckTaskCount: number;
+}
+
+export async function getOperationalMetrics(ctx: TenantContext): Promise<OperationalMetrics> {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx.execute<{ call_failures: string; notification_failures: string; stuck: string }>(sql`
+      select
+        (select count(*) from calls where hospital_id = ${ctx.hospitalId} and outcome in ('DROPPED','INVALID_NUMBER')) as call_failures,
+        (select count(*) from notifications where hospital_id = ${ctx.hospitalId} and status = 'FAILED') as notification_failures,
+        (select count(*) from outreach_tasks where hospital_id = ${ctx.hospitalId} and state in ('CALLING','CONNECTED') and lease_expires_at < now()) as stuck
+    `);
+    return {
+      callFailures: Number(row.call_failures),
+      notificationFailures: Number(row.notification_failures),
+      stuckTaskCount: Number(row.stuck),
+    };
+  });
+}
+
 export interface ReviewerStat {
   reviewerUserId: string;
   resolvedCount: number;

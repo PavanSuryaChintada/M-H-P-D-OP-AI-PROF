@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "hospitalId and patientId are required" }, { status: 400 });
   }
 
-  return handleRead(hospitalId, async () => {
+  return handleRead(hospitalId, "getConditions", async () => {
     const rows = await listConditionsForPatient(ehrSystemContext(hospitalId), patientId);
     return rows.map(conditionToFHIR);
   });

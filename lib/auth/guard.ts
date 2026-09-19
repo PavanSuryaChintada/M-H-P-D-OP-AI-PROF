@@ -8,6 +8,7 @@ import {
   type AppUser,
 } from "./session";
 import type { TenantContext } from "../db/tenant";
+import { log } from "../obs/logger";
 
 /**
  * Route-handler guard: resolves the session for `hospitalId`, checks `action`
@@ -28,9 +29,11 @@ export async function guard(hospitalId: string, action: Action): Promise<TenantC
     ctx = await resolveTenantContext(hospitalId);
   } catch (err) {
     if (err instanceof UnauthenticatedError) {
+      log("warn", "auth.denied", { action, hospitalId, reason: "unauthenticated" });
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
     }
     if (err instanceof NoHospitalAccessError) {
+      log("warn", "auth.denied", { action, hospitalId, reason: "no_hospital_access" });
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
     throw err;
@@ -40,6 +43,7 @@ export async function guard(hospitalId: string, action: Action): Promise<TenantC
     requireAllowed(ctx.role, action);
   } catch (err) {
     if (err instanceof ForbiddenError) {
+      log("warn", "auth.denied", { action, hospitalId, role: ctx.role, reason: "forbidden" });
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
     throw err;

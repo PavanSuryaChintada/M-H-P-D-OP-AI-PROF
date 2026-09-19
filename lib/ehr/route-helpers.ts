@@ -8,6 +8,7 @@ import { getHospitalById } from "../db/repositories/hospitals";
 import { injectFailure } from "./failure-injection";
 import { findIdempotentResponse, recordIdempotentResponse } from "../db/repositories/ehr-idempotency";
 import type { HospitalConfig } from "../hospitals/config-schema";
+import { log } from "../obs/logger";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,12 +25,17 @@ function injectedFailureResponse(outcome: "error" | "rate_limited" | "timeout"):
   return NextResponse.json({ error: "internal error (injected)" }, { status: 500 });
 }
 
-export async function handleRead(hospitalId: string, execute: () => Promise<unknown>): Promise<Response> {
+export async function handleRead(hospitalId: string, operation: string, execute: () => Promise<unknown>): Promise<Response> {
+  const start = Date.now();
   const { latencyMs, outcome } = injectFailure(await failureRateFor(hospitalId));
   await sleep(latencyMs);
-  if (outcome !== "ok") return injectedFailureResponse(outcome);
+  if (outcome !== "ok") {
+    log("warn", "ehr.call", { hospitalId, operation, outcome, latencyMs: Date.now() - start });
+    return injectedFailureResponse(outcome);
+  }
 
   const data = await execute();
+  log("info", "ehr.call", { hospitalId, operation, outcome: "ok", latencyMs: Date.now() - start });
   if (data === null) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json(data);
 }
@@ -40,17 +46,23 @@ export async function handleIdempotentWrite(
   operation: string,
   execute: () => Promise<Record<string, unknown>>,
 ): Promise<Response> {
+  const start = Date.now();
   const existing = await findIdempotentResponse(hospitalId, idempotencyKey);
   if (existing) {
+    log("info", "ehr.call", { hospitalId, operation, outcome: "replayed", latencyMs: Date.now() - start });
     return NextResponse.json({ ...(existing.responseBody as object), replayed: true });
   }
 
   const { latencyMs, outcome } = injectFailure(await failureRateFor(hospitalId));
   await sleep(latencyMs);
-  if (outcome !== "ok") return injectedFailureResponse(outcome);
+  if (outcome !== "ok") {
+    log("warn", "ehr.call", { hospitalId, operation, outcome, latencyMs: Date.now() - start });
+    return injectedFailureResponse(outcome);
+  }
 
   const body = await execute();
   const responseBody = { ...body, replayed: false };
   await recordIdempotentResponse(hospitalId, idempotencyKey, operation, responseBody);
+  log("info", "ehr.call", { hospitalId, operation, outcome: "ok", latencyMs: Date.now() - start });
   return NextResponse.json(responseBody, { status: 201 });
 }

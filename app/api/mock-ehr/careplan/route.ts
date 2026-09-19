@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "hospitalId and patientId are required" }, { status: 400 });
   }
 
-  return handleRead(hospitalId, async () => {
+  return handleRead(hospitalId, "getCarePlan", async () => {
     const rows = await listCarePlansForPatient(ehrSystemContext(hospitalId), patientId);
     // Doc 15 R1's getCarePlan is singular — the most recently created plan for this patient.
     const latest = rows[rows.length - 1];

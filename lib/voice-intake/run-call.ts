@@ -36,6 +36,7 @@ import { MockProvider } from "../ai/providers/mock";
 import { runTriageAssessor } from "../ai/triage/run-assessor";
 import { clinicalTriageV1 } from "../ai/prompts/clinical-triage/v1";
 import type { TriageResult } from "../ai/schemas/triage";
+import { log, runWithOperationId } from "../obs/logger";
 
 export interface RunCallInput {
   ctx: TenantContext;
@@ -144,7 +145,22 @@ async function triggerEmergencyEscalation(
   return escalationId;
 }
 
+// Doc 19 R1/R2 — wraps the whole call in one operation id and logs
+// start/outcome by patientId only, never patientFirstName or any
+// transcript content. This is the highest-PHI-risk flow in the codebase
+// (the transcript itself contains the patient's name and whatever they
+// say), so it's the one deliberately exercised by the required "no PHI in
+// logs" test — everything the inner function does is untouched.
 export async function runCall(input: RunCallInput): Promise<RunCallResult> {
+  return runWithOperationId(async () => {
+    log("info", "call.started", { outreachTaskId: input.outreachTaskId, campaignId: input.campaignId });
+    const result = await runCallInner(input);
+    log("info", "call.outcome", { outreachTaskId: input.outreachTaskId, outcome: result.outcome, emergencyTriggered: result.emergencyTriggered });
+    return result;
+  });
+}
+
+async function runCallInner(input: RunCallInput): Promise<RunCallResult> {
   const { ctx, hospitalName, patientFirstName, outreachTaskId, campaignId, followUpQuestions, redFlags, patientResponder } = input;
   const now = input.now ?? new Date();
   const transcript: TranscriptTurn[] = [];

@@ -8,7 +8,7 @@ import { recordHeartbeat, countStuckWorkers } from "../lib/db/repositories/worke
 import { getSystemHealth } from "../lib/obs/health";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
 
 let hospital: { id: string };
 const ctx = (): TenantContext => ({ hospitalId: hospital.id, userId: "00000000-0000-0000-0000-000000000000", role: "HOSPITAL_ADMIN" });

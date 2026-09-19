@@ -11,7 +11,7 @@ import postgres from "postgres";
 import { createHospital } from "../lib/db/repositories/hospitals";
 import { runReaperTick } from "../lib/queue/reaper";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
 
 let hospital: { id: string };
 let campaignId: string;

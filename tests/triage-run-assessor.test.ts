@@ -17,7 +17,7 @@ import { MockProvider } from "../lib/ai/providers/mock";
 import type { TenantContext } from "../lib/db/tenant";
 import type { TriageResult } from "../lib/ai/schemas/triage";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
 
 let hospital: { id: string };
 let patientId: string;

@@ -17,7 +17,12 @@ if (!connectionString) {
 // prepared statements, since a pooled connection can be handed to a
 // different client between statements. Safe to disable unconditionally,
 // including against a direct/session-mode connection.
-const queryClient = postgres(connectionString, { max: 10, prepare: false });
+// Supabase's pooler rejects app_user connections outright with
+// "(ESSLREQUIRED) SSL connection is required" unless TLS is requested
+// explicitly - postgres.js defaults to no SSL, and neither
+// DATABASE_URL_POOLED nor DATABASE_URL carries a `?sslmode=` query param
+// that would tell it to negotiate TLS on its own.
+const queryClient = postgres(connectionString, { max: 10, prepare: false, ssl: "require" });
 
 export const db = drizzle(queryClient, { schema });
 export type Database = typeof db;

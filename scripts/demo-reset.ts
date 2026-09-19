@@ -40,7 +40,7 @@ const OPERATIONAL_TABLES = [
 ];
 
 async function main() {
-  const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+  const sql = postgres(process.env.DATABASE_URL!, { max: 1, ssl: "require" });
   console.log(`Truncating ${OPERATIONAL_TABLES.length} operational tables (CASCADE)...`);
   await sql.unsafe(`TRUNCATE TABLE ${OPERATIONAL_TABLES.join(", ")} CASCADE`);
   await sql.end();

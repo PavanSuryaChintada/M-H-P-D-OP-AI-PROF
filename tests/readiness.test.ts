@@ -11,7 +11,7 @@ import { computeReadiness } from "../lib/hospitals/readiness";
 import { HospitalConfigSchema } from "../lib/hospitals/config-schema";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "require" });
 const paUserId = crypto.randomUUID(); // never actually looked up — readiness only needs an actor id for withTenant's app.user_id GUC
 
 let hospital: { id: string };

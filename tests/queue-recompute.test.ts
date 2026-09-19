@@ -10,7 +10,7 @@ import { recomputeScores } from "../lib/queue/recompute";
 import { computeScore } from "../lib/queue/priority";
 import { assignTier } from "../lib/queue/tier";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "require" });
 
 let hospital: { id: string };
 let campaignId: string;

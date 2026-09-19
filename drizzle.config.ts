@@ -13,6 +13,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: databaseUrl,
+    ssl: "require",
   },
   // Supabase's pooled connection (pgbouncer) doesn't support the session-level
   // features drizzle-kit push uses for introspection; migrations should run

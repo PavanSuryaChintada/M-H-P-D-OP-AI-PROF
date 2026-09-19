@@ -20,7 +20,7 @@ import { listPatients, createPatient } from "../lib/db/repositories/patients";
 // app_user (what `db` connects as) is deliberately never granted DELETE —
 // that's the R5/privilege model under test, not a bug. Cleanup therefore
 // needs its own connection using the superuser-level DATABASE_URL.
-const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "require" });
 
 let hospitalA: { id: string };
 let hospitalB: { id: string };

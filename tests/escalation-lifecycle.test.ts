@@ -19,7 +19,7 @@ import {
 import { IllegalEscalationTransitionError } from "../lib/escalations/lifecycle";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
 
 let hospital: { id: string };
 let reviewerId: string;

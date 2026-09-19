@@ -20,7 +20,7 @@ vi.mock("../lib/supabase/server", () => ({
 
 const { POST } = await import("../app/api/hospitals/[hospitalId]/discharges/route");
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false });
+const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "require" });
 
 let hospital: { id: string };
 let hospitalAdminAppUserId: string;

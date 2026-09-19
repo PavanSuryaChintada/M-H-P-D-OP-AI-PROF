@@ -16,6 +16,7 @@
     "seed:demo-users": "tsx scripts/seed-demo-users.ts",
     "seed:patients": "tsx sim/generate-patients.ts",
     "seed:protocols": "tsx scripts/seed-protocols.ts",
+    "seed:demo-hospital": "tsx scripts/seed-demo-general-hospital.ts",
     "sim": "tsx sim/queue-sim.ts",
     "eval:safety": "tsx eval/runner.ts",
     "demo:reset": "tsx scripts/demo-reset.ts",

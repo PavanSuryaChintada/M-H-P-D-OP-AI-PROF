@@ -48,6 +48,14 @@ async function main() {
 
   execSync("npx tsx sim/generate-patients.ts", { stdio: "inherit" });
 
+  // sim/generate-patients.ts only targets Northside General/Harbour
+  // Clinic/Rural Health Post (an earlier iteration's demo hospitals) - it
+  // never touches "Demo General Hospital", the one the actual seeded
+  // login accounts (hospital-admin@/campaign-manager@/clinical-reviewer@)
+  // are scoped to. Without this, a reset silently leaves that hospital
+  // empty again.
+  execSync("npx tsx scripts/seed-demo-general-hospital.ts", { stdio: "inherit" });
+
   console.log("\nDemo reset complete. Hospitals, users, and protocols were left untouched.");
 }
 

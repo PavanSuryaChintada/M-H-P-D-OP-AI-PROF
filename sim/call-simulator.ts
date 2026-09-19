@@ -93,7 +93,14 @@ export function buildPersonaResponder(persona: PersonaName): PatientResponder {
     case "callback_requester":
       return new ScriptedResponder((_u, state) => {
         if (state === "CONFIRM_TIME") {
-          return { text: "This isn't a good time, can you call me back tomorrow?", callbackRequestedAt: new Date(Date.now() + 24 * 60 * 60 * 1000) };
+          // A short, safe offset rather than "tomorrow" — real bug found
+          // running the worker (doc 23) against seeded tasks with a
+          // clinical deadline less than 24h out: a fixed +24h request
+          // always exceeded the window, throwing InvalidCallbackTimeError
+          // on every callback_requester call in a live deployment. Two
+          // hours is well inside any realistic follow-up window while
+          // still reading as a genuine "not now" request.
+          return { text: "This isn't a good time, can you call me back in a couple hours?", callbackRequestedAt: new Date(Date.now() + 2 * 60 * 60 * 1000) };
         }
         return { text: defaultAnswer(state) };
       });

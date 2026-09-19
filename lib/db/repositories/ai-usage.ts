@@ -2,7 +2,8 @@
 // This is what makes doc 19's AI observability and doc 21's safety eval
 // cost/latency reporting possible at all.
 
-import { withTenant, type TenantContext } from "../tenant";
+import { and, eq, gte, sql } from "drizzle-orm";
+import { withTenant, withHospitalContext, type TenantContext } from "../tenant";
 import { aiUsage } from "../schema";
 
 export interface RecordAiUsageInput {
@@ -33,5 +34,16 @@ export async function recordAiUsage(ctx: TenantContext, input: RecordAiUsageInpu
       })
       .returning();
     return row;
+  });
+}
+
+/** Doc 23 R7 — cost guard input: today's real spend for a hospital, summed from actual recorded calls (never estimated). */
+export async function getTodaySpendUsd(hospitalId: string): Promise<number> {
+  return withHospitalContext(hospitalId, async (tx) => {
+    const [row] = await tx
+      .select({ total: sql<string>`coalesce(sum(${aiUsage.estimatedCostUsd}), 0)` })
+      .from(aiUsage)
+      .where(and(eq(aiUsage.hospitalId, hospitalId), gte(aiUsage.at, sql`date_trunc('day', now())`)));
+    return Number(row?.total ?? 0);
   });
 }

@@ -53,6 +53,25 @@ jobs:
 
       - run: npm ci
 
+      - name: Secret scan (doc 23 R5)
+        # Fails the build if a pattern matching a real API key shows up in
+        # tracked files — Anthropic/OpenAI/Supabase service-role keys, AWS
+        # access keys, and generic long hex/base64 secrets assigned to an
+        # obviously-sensitive variable name. .env is gitignored and never
+        # reaches this checkout at all; this catches the case where someone
+        # pastes a real key into a committed file instead (e.g. by accident
+        # in a script or a doc).
+        run: |
+          set -e
+          PATTERN='sk-ant-[A-Za-z0-9_-]{20,}|sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}|eyJhbGciOi[A-Za-z0-9_-]{40,}|SUPABASE_SERVICE_ROLE_KEY=.+[A-Za-z0-9]{20,}'
+          MATCHES=$(git grep -InE "$PATTERN" -- . ':!*.lock' ':!package-lock.json' || true)
+          if [ -n "$MATCHES" ]; then
+            echo "Possible committed secret matched:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "No committed-secret patterns found."
+
       - name: Typecheck
         run: npx tsc --noEmit
 

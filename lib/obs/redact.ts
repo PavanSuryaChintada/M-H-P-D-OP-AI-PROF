@@ -24,12 +24,22 @@ const PHI_KEYS = new Set([
 
 const EMAIL_RE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 const PHONE_RE = /\+?\d[\d\-\s()]{7,}\d/g;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Deep-redacts known PHI keys and scrubs email/phone-shaped substrings out of free text. */
+/**
+ * Deep-redacts known PHI keys and scrubs email/phone-shaped substrings out
+ * of free text. Real bug found running the worker end to end: PHONE_RE's
+ * "long digit run with dashes" pattern also matches inside a UUID's mostly-
+ * numeric segments (e.g. a call/task/hospital id), silently corrupting the
+ * very ids logs are supposed to carry INSTEAD of PHI. A UUID is never PHI
+ * on its own — it's an opaque reference — so it's exempted before the
+ * phone-shaped regex ever runs on it.
+ */
 export function redact<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {
   if (value === null || value === undefined) return value;
 
   if (typeof value === "string") {
+    if (UUID_RE.test(value)) return value as unknown as T;
     return value
       .replace(EMAIL_RE, "[REDACTED_EMAIL]")
       .replace(PHONE_RE, "[REDACTED_PHONE]") as unknown as T;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import HospitalNav from "./HospitalNav";
 
 interface Hospital {
   id: string;
@@ -141,86 +141,99 @@ export default function HospitalDetailPage() {
     loadAll();
   }
 
-  if (!hospital) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (!hospital) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">Loading…</main>
+      </>
+    );
+  }
 
   return (
-    <main style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>{hospital.name}</h1>
-      <p>
-        {hospital.shortCode} · {hospital.timezone} · status: <strong>{hospital.status}</strong> ·{" "}
-        <Link href={`/admin/hospitals/${hospital.id}/patients`}>Patients</Link>
-      </p>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1 style={{ marginBottom: "0.35rem" }}>{hospital.name}</h1>
+        <p style={{ color: "var(--muted)", marginBottom: "1.25rem" }}>
+          {hospital.shortCode} · {hospital.timezone} · status: <strong>{hospital.status}</strong>
+        </p>
 
-      {readiness && (
-        <section style={{ margin: "1rem 0", padding: "1rem", border: "1px solid #ccc" }}>
-          <h2>Readiness</h2>
-          {readiness.ready ? (
-            <p>Ready.</p>
-          ) : (
-            <ul>
-              {readiness.missing.map((m) => (
-                <li key={m}>{m}</li>
-              ))}
-            </ul>
-          )}
-          <button onClick={handleMarkReady} disabled={!readiness.ready}>
-            Mark READY
-          </button>
+        {readiness && (
+          <section className={readiness.ready ? "card" : "card warn"}>
+            <h2>Readiness</h2>
+            {readiness.ready ? (
+              <p>Ready.</p>
+            ) : (
+              <ul style={{ paddingLeft: "1.25rem", marginBottom: "0.75rem" }}>
+                {readiness.missing.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            )}
+            <button className="primary" onClick={handleMarkReady} disabled={!readiness.ready}>
+              Mark READY
+            </button>
+          </section>
+        )}
+
+        <section className="card">
+          <h2>Operating configuration</h2>
+          <form onSubmit={handleSaveConfig}>
+            <textarea
+              value={configText}
+              onChange={(e) => setConfigText(e.target.value)}
+              rows={16}
+              style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginBottom: "0.75rem" }}
+            />
+            <button type="submit" className="primary">Save config</button>
+          </form>
         </section>
-      )}
 
-      <section style={{ margin: "1rem 0" }}>
-        <h2>Operating configuration</h2>
-        <form onSubmit={handleSaveConfig}>
-          <textarea
-            value={configText}
-            onChange={(e) => setConfigText(e.target.value)}
-            rows={16}
-            style={{ width: "100%", fontFamily: "monospace" }}
-          />
-          <button type="submit">Save config</button>
-        </form>
-      </section>
+        <section className="card">
+          <h2>Escalation contacts</h2>
+          <ul style={{ paddingLeft: "1.25rem", marginBottom: "1rem" }}>
+            {contacts.map((c) => (
+              <li key={c.id}>
+                {c.role} — {c.channel} — {c.contactValue} — ack {c.ackTimeoutMinutes}m
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={handleAddContact} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              placeholder="Role (e.g. Charge Nurse)"
+              value={contactRole}
+              onChange={(e) => setContactRole(e.target.value)}
+              required
+            />
+            <select value={contactChannel} onChange={(e) => setContactChannel(e.target.value)}>
+              <option value="EMAIL">EMAIL</option>
+              <option value="IN_APP">IN_APP</option>
+              <option value="WEBHOOK">WEBHOOK</option>
+            </select>
+            <input
+              placeholder="Contact value"
+              value={contactValue}
+              onChange={(e) => setContactValue(e.target.value)}
+              required
+            />
+            <input
+              type="number"
+              placeholder="Ack timeout (min)"
+              value={contactTimeout}
+              onChange={(e) => setContactTimeout(Number(e.target.value))}
+              required
+            />
+            <button type="submit" className="primary">Add contact</button>
+          </form>
+        </section>
 
-      <section style={{ margin: "1rem 0" }}>
-        <h2>Escalation contacts</h2>
-        <ul>
-          {contacts.map((c) => (
-            <li key={c.id}>
-              {c.role} — {c.channel} — {c.contactValue} — ack {c.ackTimeoutMinutes}m
-            </li>
-          ))}
-        </ul>
-        <form onSubmit={handleAddContact} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            placeholder="Role (e.g. Charge Nurse)"
-            value={contactRole}
-            onChange={(e) => setContactRole(e.target.value)}
-            required
-          />
-          <select value={contactChannel} onChange={(e) => setContactChannel(e.target.value)}>
-            <option value="EMAIL">EMAIL</option>
-            <option value="IN_APP">IN_APP</option>
-            <option value="WEBHOOK">WEBHOOK</option>
-          </select>
-          <input
-            placeholder="Contact value"
-            value={contactValue}
-            onChange={(e) => setContactValue(e.target.value)}
-            required
-          />
-          <input
-            type="number"
-            placeholder="Ack timeout (min)"
-            value={contactTimeout}
-            onChange={(e) => setContactTimeout(Number(e.target.value))}
-            required
-          />
-          <button type="submit">Add contact</button>
-        </form>
-      </section>
-
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-    </main>
+        {error && (
+          <div className="card alert">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+      </main>
+    </>
   );
 }

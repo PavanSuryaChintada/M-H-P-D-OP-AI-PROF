@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import HospitalNav from "../HospitalNav";
 
 interface PatientSummary {
   id: string;
@@ -27,24 +28,39 @@ export default function PatientsListPage() {
   }, [hospitalId]);
 
   return (
-    <main style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Patients</h1>
-      {loading ? (
-        <p>Loading…</p>
-      ) : patients.length === 0 ? (
-        <p>No patients ingested yet.</p>
-      ) : (
-        <ul>
-          {patients.map((p) => (
-            <li key={p.id}>
-              <Link href={`/admin/hospitals/${hospitalId}/patients/${p.id}`}>
-                {p.firstName} {p.lastName}
-              </Link>{" "}
-              — {p.mrn}
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1 style={{ marginBottom: "1rem" }}>Patients</h1>
+        {loading ? (
+          <p>Loading…</p>
+        ) : patients.length === 0 ? (
+          <p className="card">No patients ingested yet.</p>
+        ) : (
+          <div className="card" style={{ padding: 0 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>MRN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {patients.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <Link href={`/admin/hospitals/${hospitalId}/patients/${p.id}`}>
+                        {p.firstName} {p.lastName}
+                      </Link>
+                    </td>
+                    <td style={{ color: "var(--muted)" }}>{p.mrn}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+    </>
   );
 }

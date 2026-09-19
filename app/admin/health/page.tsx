@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 
 // Doc 19 R6 — "put it on screen too."
 interface SystemHealth {
@@ -17,7 +18,7 @@ interface SystemHealth {
   };
 }
 
-const STATUS_COLOR: Record<string, string> = { HEALTHY: "green", DEGRADED: "orange", UNAVAILABLE: "red" };
+const STATUS_CLASS: Record<string, string> = { HEALTHY: "badge success", DEGRADED: "badge warn", UNAVAILABLE: "badge danger" };
 
 export default function SystemHealthPage() {
   const [data, setData] = useState<SystemHealth | null>(null);
@@ -32,36 +33,40 @@ export default function SystemHealthPage() {
     return () => clearInterval(interval);
   }, [load]);
 
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (!data) return <main className="page">Loading…</main>;
 
   return (
-    <main style={{ maxWidth: 800, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>
-        System health: <span style={{ color: STATUS_COLOR[data.status] }}>{data.status}</span>
+    <main className="page" style={{ maxWidth: 800 }}>
+      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+        ← Home
+      </Link>
+      <h1 style={{ margin: "0.5rem 0 1rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        System health <span className={STATUS_CLASS[data.status] ?? "badge"}>{data.status}</span>
       </h1>
 
-      <section style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
+      <section className="card">
         <h2>Components</h2>
-        <ul>
+        <div className="stat-row" style={{ marginBottom: 0 }}>
           {Object.entries(data.components).map(([name, status]) => (
-            <li key={name} style={{ color: STATUS_COLOR[status] }}>
-              {name}: {status}
-            </li>
+            <div key={name} className="stat" style={{ minWidth: 0 }}>
+              <div className="label">{name}</div>
+              <span className={STATUS_CLASS[status] ?? "badge"}>{status}</span>
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
 
-      <section style={{ border: "1px solid #ccc", padding: "1rem" }}>
+      <section className="card">
         <h2>Queue</h2>
-        <ul>
+        <ul style={{ paddingLeft: "1.25rem" }}>
           <li>
             Active calls: {data.queue.active_calls} / {data.queue.capacity}
           </li>
           <li>Pending: {data.queue.pending}</li>
           <li>Oldest pending: {data.queue.oldest_pending_minutes}m</li>
-          <li style={{ color: data.queue.cutoff_risk > 0 ? "red" : "inherit" }}>Cutoff risk: {data.queue.cutoff_risk}</li>
+          <li style={{ color: data.queue.cutoff_risk > 0 ? "var(--danger)" : "inherit" }}>Cutoff risk: {data.queue.cutoff_risk}</li>
           <li>Failed: {data.queue.failed}</li>
-          <li style={{ color: data.queue.stuck_workers > 0 ? "red" : "inherit" }}>Stuck workers: {data.queue.stuck_workers}</li>
+          <li style={{ color: data.queue.stuck_workers > 0 ? "var(--danger)" : "inherit" }}>Stuck workers: {data.queue.stuck_workers}</li>
         </ul>
       </section>
     </main>

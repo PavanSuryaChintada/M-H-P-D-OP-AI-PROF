@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 
 // Doc 18 R3 — Platform Admin dashboard. Not hospital-scoped. Aggregates
 // only (per-hospital rows here are activity counts, never patient-level
@@ -51,43 +52,46 @@ export default function PlatformAdminDashboard() {
     return () => clearInterval(interval);
   }, [load]);
 
-  if (error) return <main style={{ padding: "2rem" }}>Error: {error}</main>;
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (error) return <main className="page"><div className="card alert">Error: {error}</div></main>;
+  if (!data) return <main className="page">Loading…</main>;
 
   return (
-    <main style={{ maxWidth: 1100, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Platform Admin dashboard</h1>
-      <p style={{ color: "#666" }}>Aggregates only — no patient-level data is shown here.</p>
+    <main className="page" style={{ maxWidth: 1100 }}>
+      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+        ← Home
+      </Link>
+      <h1 style={{ margin: "0.5rem 0 0.25rem" }}>Platform Admin dashboard</h1>
+      <p style={{ color: "var(--muted)", marginBottom: "1.25rem" }}>Aggregates only — no patient-level data is shown here.</p>
 
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Campaigns (all hospitals)</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.totals.campaignCount}</div>
+      <div className="stat-row">
+        <div className="stat">
+          <div className="label">Campaigns (all hospitals)</div>
+          <div className="value">{data.overview.totals.campaignCount}</div>
         </div>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Active calls</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.totals.activeCalls}</div>
+        <div className="stat">
+          <div className="label">Active calls</div>
+          <div className="value">{data.overview.totals.activeCalls}</div>
         </div>
-        <div style={{ border: data.overview.totals.deadLetterEventCount > 0 ? "2px solid red" : "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Dead-letter events</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.totals.deadLetterEventCount}</div>
+        <div className="stat" style={{ borderColor: data.overview.totals.deadLetterEventCount > 0 ? "var(--danger)" : "var(--border)" }}>
+          <div className="label">Dead-letter events</div>
+          <div className="value">{data.overview.totals.deadLetterEventCount}</div>
         </div>
-        <div style={{ border: data.overview.totals.stuckTaskCount > 0 ? "2px solid red" : "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Stuck tasks</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.totals.stuckTaskCount}</div>
+        <div className="stat" style={{ borderColor: data.overview.totals.stuckTaskCount > 0 ? "var(--danger)" : "var(--border)" }}>
+          <div className="label">Stuck tasks</div>
+          <div className="value">{data.overview.totals.stuckTaskCount}</div>
         </div>
       </div>
 
-      <section style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-        <h2>Per-hospital activity</h2>
-        <table style={{ width: "100%" }}>
+      <section className="card" style={{ padding: 0, paddingTop: "1.25rem" }}>
+        <h2 style={{ padding: "0 1.25rem" }}>Per-hospital activity</h2>
+        <table>
           <thead>
             <tr>
-              <th style={{ textAlign: "left" }}>Hospital</th>
-              <th style={{ textAlign: "left" }}>Campaigns</th>
-              <th style={{ textAlign: "left" }}>Capacity</th>
-              <th style={{ textAlign: "left" }}>Dead-letter</th>
-              <th style={{ textAlign: "left" }}>Stuck</th>
+              <th>Hospital</th>
+              <th>Campaigns</th>
+              <th>Capacity</th>
+              <th>Dead-letter</th>
+              <th>Stuck</th>
             </tr>
           </thead>
           <tbody>
@@ -106,17 +110,17 @@ export default function PlatformAdminDashboard() {
         </table>
       </section>
 
-      <section style={{ border: "1px solid #ccc", padding: "1rem" }}>
-        <h2>AI usage by agent</h2>
-        <table style={{ width: "100%" }}>
+      <section className="card" style={{ padding: 0, paddingTop: "1.25rem" }}>
+        <h2 style={{ padding: "0 1.25rem" }}>AI usage by agent</h2>
+        <table>
           <thead>
             <tr>
-              <th style={{ textAlign: "left" }}>Agent</th>
-              <th style={{ textAlign: "left" }}>Calls</th>
-              <th style={{ textAlign: "left" }}>Tokens</th>
-              <th style={{ textAlign: "left" }}>Est. cost</th>
-              <th style={{ textAlign: "left" }}>p95 latency</th>
-              <th style={{ textAlign: "left" }}>Validation failure rate</th>
+              <th>Agent</th>
+              <th>Calls</th>
+              <th>Tokens</th>
+              <th>Est. cost</th>
+              <th>p95 latency</th>
+              <th>Validation failure rate</th>
             </tr>
           </thead>
           <tbody>

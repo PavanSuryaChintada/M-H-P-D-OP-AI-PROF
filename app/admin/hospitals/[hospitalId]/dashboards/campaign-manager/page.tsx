@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import HospitalNav from "../../HospitalNav";
 
 // Doc 18 R1 — Campaign Manager dashboard. R6: 5s polling, no websockets.
 interface QueueTask {
@@ -74,117 +75,139 @@ export default function CampaignManagerDashboard() {
     setScoreBreakdown(res.ok ? await res.json() : null);
   }
 
-  if (error) return <main style={{ padding: "2rem" }}>Error: {error}</main>;
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (error) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">
+          <div className="card alert">Error: {error}</div>
+        </main>
+      </>
+    );
+  }
+  if (!data) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">Loading…</main>
+      </>
+    );
+  }
+
+  const capacityPct = data.capacity.max > 0 ? Math.min(100, (data.capacity.active / data.capacity.max) * 100) : 0;
 
   return (
-    <main style={{ maxWidth: 1000, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Campaign Manager dashboard</h1>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1 style={{ marginBottom: "1rem" }}>Campaign Manager dashboard</h1>
 
-      {/* R1 — capacity gauge: "the single most important widget in the product" */}
-      <section style={{ border: "2px solid #333", padding: "1rem", marginBottom: "1rem" }}>
-        <h2>
-          Capacity: {data.capacity.active} / {data.capacity.max}
-        </h2>
-        <div style={{ background: "#eee", height: "1.5rem", width: "100%" }}>
-          <div
-            style={{
-              background: data.capacity.active >= data.capacity.max ? "red" : "green",
-              width: `${data.capacity.max > 0 ? Math.min(100, (data.capacity.active / data.capacity.max) * 100) : 0}%`,
-              height: "100%",
-            }}
-          />
-        </div>
-      </section>
-
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Queue depth</strong>
-          <ul>
-            {Object.entries(data.queueDepth.byState).map(([state, count]) => (
-              <li key={state}>
-                {state}: {count}
-              </li>
-            ))}
-          </ul>
-          <div>Oldest pending: {data.queueDepth.oldestPendingAgeSeconds !== null ? `${Math.round(data.queueDepth.oldestPendingAgeSeconds / 60)}m` : "n/a"}</div>
-        </div>
-        <div style={{ border: "2px solid orange", padding: "1rem", flex: 1 }}>
-          <strong>Approaching clinical cutoff (Tier 1)</strong>
-          <div style={{ fontSize: "2rem" }}>{data.cutoffApproaching}</div>
-        </div>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Retry backlog</strong>
-          <div style={{ fontSize: "2rem" }}>{data.retryBacklog}</div>
-        </div>
-      </div>
-
-      {data.progress && (
-        <section style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-          <h2>Campaign progress</h2>
-          <p>
-            Eligible {data.progress.eligible} · Attempted {data.progress.attempted} · Completed {data.progress.completed} ·
-            Escalated {data.progress.escalated} · Manual {data.progress.manual} · Failed {data.progress.failed}
-          </p>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button onClick={() => transition("RUNNING")}>Start / Resume</button>
-            <button onClick={() => transition("PAUSED")}>Pause</button>
-            <button onClick={() => transition("CANCELLED")}>Cancel</button>
+        {/* R1 — capacity gauge: "the single most important widget in the product" */}
+        <section className="card" style={{ borderWidth: "2px", borderColor: capacityPct >= 100 ? "var(--danger)" : "var(--primary)" }}>
+          <h2>
+            Capacity: {data.capacity.active} / {data.capacity.max}
+          </h2>
+          <div style={{ background: "var(--border)", height: "0.9rem", width: "100%", borderRadius: "999px", overflow: "hidden" }}>
+            <div
+              style={{
+                background: capacityPct >= 100 ? "var(--danger)" : "var(--success)",
+                width: `${capacityPct}%`,
+                height: "100%",
+                transition: "width 0.3s ease",
+              }}
+            />
           </div>
         </section>
-      )}
 
-      <section style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-        <h2>Callback schedule (next 4 hours)</h2>
-        {data.upcomingCallbacks.length === 0 ? (
-          <p>None scheduled.</p>
-        ) : (
-          <ul>
-            {data.upcomingCallbacks.map((c) => (
-              <li key={c.taskId}>{new Date(c.callbackRequestedAt).toLocaleString()}</li>
+        <div className="stat-row">
+          <div className="stat">
+            <div className="label">Queue depth</div>
+            {Object.entries(data.queueDepth.byState).map(([state, count]) => (
+              <div key={state} style={{ fontSize: "0.85rem" }}>
+                {state}: {count}
+              </div>
             ))}
-          </ul>
-        )}
-      </section>
+            <div style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.35rem" }}>
+              Oldest pending: {data.queueDepth.oldestPendingAgeSeconds !== null ? `${Math.round(data.queueDepth.oldestPendingAgeSeconds / 60)}m` : "n/a"}
+            </div>
+          </div>
+          <div className="stat" style={{ borderColor: data.cutoffApproaching > 0 ? "var(--warning)" : "var(--border)" }}>
+            <div className="label">Approaching clinical cutoff (Tier 1)</div>
+            <div className="value">{data.cutoffApproaching}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Retry backlog</div>
+            <div className="value">{data.retryBacklog}</div>
+          </div>
+        </div>
 
-      {campaignId && (
-        <section style={{ border: "1px solid #ccc", padding: "1rem" }}>
-          <h2>Live queue</h2>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>State</th>
-                <th style={{ textAlign: "left" }}>Tier</th>
-                <th style={{ textAlign: "left" }}>Score</th>
-                <th style={{ textAlign: "left" }}>Attempts</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {data.queueTable.map((t) => (
-                <Fragment key={t.id}>
-                  <tr style={{ borderBottom: "1px solid #eee" }}>
-                    <td>{t.state}</td>
-                    <td>{t.tier}</td>
-                    <td>{Number(t.priorityScore).toFixed(2)}</td>
-                    <td>{t.attemptCount}</td>
-                    <td>
-                      <button onClick={() => showScore(t.id)}>Why this order?</button>
-                    </td>
-                  </tr>
-                  {scoreFor === t.id && scoreBreakdown && (
+        {data.progress && (
+          <section className="card">
+            <h2>Campaign progress</h2>
+            <p style={{ marginBottom: "0.75rem" }}>
+              Eligible {data.progress.eligible} · Attempted {data.progress.attempted} · Completed {data.progress.completed} ·
+              Escalated {data.progress.escalated} · Manual {data.progress.manual} · Failed {data.progress.failed}
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button className="primary" onClick={() => transition("RUNNING")}>Start / Resume</button>
+              <button onClick={() => transition("PAUSED")}>Pause</button>
+              <button onClick={() => transition("CANCELLED")}>Cancel</button>
+            </div>
+          </section>
+        )}
+
+        <section className="card">
+          <h2>Callback schedule (next 4 hours)</h2>
+          {data.upcomingCallbacks.length === 0 ? (
+            <p style={{ color: "var(--muted)" }}>None scheduled.</p>
+          ) : (
+            <ul style={{ paddingLeft: "1.25rem" }}>
+              {data.upcomingCallbacks.map((c) => (
+                <li key={c.taskId}>{new Date(c.callbackRequestedAt).toLocaleString()}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {campaignId && (
+          <section className="card" style={{ padding: 0, paddingTop: "1.25rem" }}>
+            <h2 style={{ padding: "0 1.25rem" }}>Live queue</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>State</th>
+                  <th>Tier</th>
+                  <th>Score</th>
+                  <th>Attempts</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {data.queueTable.map((t) => (
+                  <Fragment key={t.id}>
                     <tr>
-                      <td colSpan={5} style={{ background: "#f8f8f8", padding: "0.5rem" }}>
-                        <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{JSON.stringify(scoreBreakdown, null, 2)}</pre>
+                      <td>{t.state}</td>
+                      <td>{t.tier}</td>
+                      <td>{Number(t.priorityScore).toFixed(2)}</td>
+                      <td>{t.attemptCount}</td>
+                      <td>
+                        <button onClick={() => showScore(t.id)}>Why this order?</button>
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
-    </main>
+                    {scoreFor === t.id && scoreBreakdown && (
+                      <tr>
+                        <td colSpan={5} style={{ background: "var(--background)" }}>
+                          <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: "0.8rem" }}>{JSON.stringify(scoreBreakdown, null, 2)}</pre>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </main>
+    </>
   );
 }

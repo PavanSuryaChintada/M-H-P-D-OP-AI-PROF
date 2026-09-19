@@ -4,6 +4,16 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+// Doc 23 R3 — demo credentials shown directly on the login page, not just
+// in the README, so an evaluator can log in without leaving the browser.
+const DEMO_ACCOUNTS = [
+  { role: "Platform Admin", email: "platform-admin@demo.mhpd.local" },
+  { role: "Hospital Admin", email: "hospital-admin@demo.mhpd.local" },
+  { role: "Campaign Manager", email: "campaign-manager@demo.mhpd.local" },
+  { role: "Clinical Reviewer", email: "clinical-reviewer@demo.mhpd.local" },
+];
+const DEMO_PASSWORD = "Demo1234!";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,9 +36,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "4rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Sign in</h1>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <main className="page" style={{ maxWidth: 420, marginTop: "3rem" }}>
+      <h1 style={{ marginBottom: "1.25rem" }}>Sign in</h1>
+      <form onSubmit={handleSubmit} className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <input
           type="email"
           placeholder="Email"
@@ -43,14 +53,44 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button type="submit" disabled={submitting}>
+        <button type="submit" className="primary" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-      <p style={{ color: "#666", fontSize: "0.85rem", marginTop: "2rem" }}>
-        Demo credentials are in the repo README.
-      </p>
+      {error && (
+        <div className="card alert" style={{ marginTop: "1rem" }}>
+          {error}
+        </div>
+      )}
+
+      <section className="card">
+        <h2>Demo accounts</h2>
+        <p style={{ color: "var(--muted)", marginBottom: "0.75rem", fontSize: "0.85rem" }}>
+          Seed data is public and synthetic — not real patient data. Password for all four:{" "}
+          <code style={{ background: "var(--background)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>{DEMO_PASSWORD}</code>
+        </p>
+        <table>
+          <tbody>
+            {DEMO_ACCOUNTS.map((a) => (
+              <tr key={a.email}>
+                <td style={{ fontWeight: 500 }}>{a.role}</td>
+                <td>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(a.email);
+                      setPassword(DEMO_PASSWORD);
+                    }}
+                    style={{ fontSize: "0.8rem" }}
+                  >
+                    {a.email}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </main>
   );
 }

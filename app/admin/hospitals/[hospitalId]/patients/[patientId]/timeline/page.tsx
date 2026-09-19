@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import HospitalNav from "../../../HospitalNav";
 
 // Doc 18 R4 — "the timeline is the 'what happened to this patient?' answer
 // the PRD keeps asking for."
@@ -17,10 +18,10 @@ interface TimelineData {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  call: "#eef",
-  documentation: "#efe",
-  escalation: "#fee",
-  follow_up_task: "#ffe",
+  call: "#2563eb",
+  documentation: "#16a34a",
+  escalation: "#dc2626",
+  follow_up_task: "#d97706",
 };
 
 export default function PatientTimelinePage() {
@@ -42,30 +43,49 @@ export default function PatientTimelinePage() {
       });
   }, [hospitalId, patientId]);
 
-  if (error) return <main style={{ padding: "2rem" }}>Error: {error}</main>;
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (error) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">
+          <div className="card alert">Error: {error}</div>
+        </main>
+      </>
+    );
+  }
+  if (!data) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">Loading…</main>
+      </>
+    );
+  }
 
   return (
-    <main style={{ maxWidth: 800, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>
-        {data.patient.firstName} {data.patient.lastName} — timeline
-      </h1>
-      <p>MRN: {data.patient.mrn}</p>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1>
+          {data.patient.firstName} {data.patient.lastName} — timeline
+        </h1>
+        <p style={{ color: "var(--muted)", marginBottom: "1.25rem" }}>MRN: {data.patient.mrn}</p>
 
-      {data.events.length === 0 ? (
-        <p>No recorded activity yet.</p>
-      ) : (
-        <ol style={{ borderLeft: "2px solid #ccc", paddingLeft: "1rem", listStyle: "none" }}>
-          {data.events.map((e, i) => (
-            <li key={i} style={{ marginBottom: "1rem", background: TYPE_COLORS[e.type] ?? "#f5f5f5", padding: "0.5rem" }}>
-              <div style={{ fontSize: "0.8rem", color: "#666" }}>
-                {new Date(e.at).toLocaleString()} — <strong>{e.type}</strong>
-              </div>
-              <div>{e.summary}</div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </main>
+        {data.events.length === 0 ? (
+          <p className="card">No recorded activity yet.</p>
+        ) : (
+          <ol style={{ borderLeft: "2px solid var(--border)", paddingLeft: "1rem", listStyle: "none" }}>
+            {data.events.map((e, i) => (
+              <li key={i} className="card" style={{ marginBottom: "0.75rem", borderLeftWidth: "4px", borderLeftColor: TYPE_COLORS[e.type] ?? "var(--border)" }}>
+                <div style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
+                  {new Date(e.at).toLocaleString()} — <strong>{e.type}</strong>
+                </div>
+                <div>{e.summary}</div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </main>
+    </>
   );
 }

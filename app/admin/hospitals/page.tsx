@@ -49,42 +49,65 @@ export default function HospitalsPage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Hospitals</h1>
+    <main className="page">
+      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+        ← Home
+      </Link>
+      <h1 style={{ margin: "0.5rem 0 1rem" }}>Hospitals</h1>
 
       {loading ? (
         <p>Loading…</p>
       ) : hospitals.length === 0 ? (
-        <p>No hospitals yet.</p>
+        <p className="card">No hospitals yet.</p>
       ) : (
-        <ul>
-          {hospitals.map((h) => (
-            <li key={h.id}>
-              <Link href={`/admin/hospitals/${h.id}`}>{h.name}</Link> — {h.shortCode} — {h.timezone} —{" "}
-              <strong>{h.status}</strong>
-            </li>
-          ))}
-        </ul>
+        <div className="card" style={{ padding: 0 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Short code</th>
+                <th>Timezone</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hospitals.map((h) => (
+                <tr key={h.id}>
+                  <td>
+                    <Link href={`/admin/hospitals/${h.id}`}>{h.name}</Link>
+                  </td>
+                  <td style={{ color: "var(--muted)" }}>{h.shortCode}</td>
+                  <td style={{ color: "var(--muted)" }}>{h.timezone}</td>
+                  <td>
+                    <span className="badge">{h.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <h2>Create hospital</h2>
-      <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 320 }}>
-        <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <input
-          placeholder="Short code"
-          value={shortCode}
-          onChange={(e) => setShortCode(e.target.value)}
-          required
-        />
-        <input
-          placeholder="IANA timezone, e.g. America/New_York"
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          required
-        />
-        <button type="submit">Create</button>
-      </form>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+      <section className="card">
+        <h2>Create hospital</h2>
+        <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 320 }}>
+          <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <input
+            placeholder="Short code"
+            value={shortCode}
+            onChange={(e) => setShortCode(e.target.value)}
+            required
+          />
+          <input
+            placeholder="IANA timezone, e.g. America/New_York"
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            required
+          />
+          <button type="submit" className="primary">Create</button>
+        </form>
+        {error && <p style={{ color: "var(--danger)", marginTop: "0.5rem" }}>{error}</p>}
+      </section>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import HospitalNav from "../../HospitalNav";
 
 // Doc 18 R2 — Hospital Admin dashboard. R6: 5s polling.
 interface DashboardData {
@@ -38,89 +39,108 @@ export default function HospitalAdminDashboard() {
     return () => clearInterval(interval);
   }, [load]);
 
-  if (error) return <main style={{ padding: "2rem" }}>Error: {error}</main>;
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (error) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">
+          <div className="card alert">Error: {error}</div>
+        </main>
+      </>
+    );
+  }
+  if (!data) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">Loading…</main>
+      </>
+    );
+  }
 
   return (
-    <main style={{ maxWidth: 1000, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Hospital Admin dashboard</h1>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1 style={{ marginBottom: "1rem" }}>Hospital Admin dashboard</h1>
 
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Campaigns</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.campaignCount}</div>
-        </div>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Outreach volume</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.outreachVolume}</div>
-        </div>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Contact rate</strong>
-          <div style={{ fontSize: "2rem" }}>{(data.overview.contactRate * 100).toFixed(0)}%</div>
-        </div>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Avg attempts to contact</strong>
-          <div style={{ fontSize: "2rem" }}>{data.overview.avgAttemptsToContact?.toFixed(1) ?? "n/a"}</div>
-        </div>
-      </div>
-
-      <section style={{ border: data.escalationCounts.overdueCount > 0 ? "2px solid red" : "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-        <h2>Escalations — {data.escalationCounts.overdueCount} overdue</h2>
-        <ul>
-          {data.escalationCounts.byPriorityAndStatus.map((r) => (
-            <li key={`${r.priority}-${r.state}`}>
-              Priority {r.priority} · {r.state}: {r.count}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>Manual follow-up backlog</strong>
-          <div style={{ fontSize: "2rem" }}>{data.manualFollowUpBacklog}</div>
-        </div>
-        <div style={{ border: "1px solid #ccc", padding: "1rem", flex: 1 }}>
-          <strong>EHR sync health</strong>
-          <div>
-            Pending {data.ehrSyncHealth.pending} · Synced {data.ehrSyncHealth.synced} ·{" "}
-            <span style={{ color: data.ehrSyncHealth.failed > 0 ? "red" : "inherit" }}>Failed {data.ehrSyncHealth.failed}</span>
+        <div className="stat-row">
+          <div className="stat">
+            <div className="label">Campaigns</div>
+            <div className="value">{data.overview.campaignCount}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Outreach volume</div>
+            <div className="value">{data.overview.outreachVolume}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Contact rate</div>
+            <div className="value">{(data.overview.contactRate * 100).toFixed(0)}%</div>
+          </div>
+          <div className="stat">
+            <div className="label">Avg attempts to contact</div>
+            <div className="value">{data.overview.avgAttemptsToContact?.toFixed(1) ?? "n/a"}</div>
           </div>
         </div>
-      </div>
 
-      <section style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-        <h2>Protocols</h2>
-        <ul>
-          {data.protocolVersions.map((p) => (
-            <li key={p.id}>
-              {p.specialty ?? "general"} — effective {p.effective_from ? new Date(p.effective_from).toLocaleDateString() : "n/a"}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section style={{ border: "1px solid #ccc", padding: "1rem" }}>
-        <h2>Reviewer activity</h2>
-        <table style={{ width: "100%" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left" }}>Reviewer</th>
-              <th style={{ textAlign: "left" }}>Resolved</th>
-              <th style={{ textAlign: "left" }}>Median time to resolve</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.reviewerStats.map((r) => (
-              <tr key={r.reviewerUserId}>
-                <td>{r.reviewerUserId}</td>
-                <td>{r.resolvedCount}</td>
-                <td>{r.medianTimeToResolveSeconds !== null ? `${Math.round(r.medianTimeToResolveSeconds / 60)}m` : "n/a"}</td>
-              </tr>
+        <section className={data.escalationCounts.overdueCount > 0 ? "card alert" : "card"}>
+          <h2>Escalations — {data.escalationCounts.overdueCount} overdue</h2>
+          <ul style={{ paddingLeft: "1.25rem" }}>
+            {data.escalationCounts.byPriorityAndStatus.map((r) => (
+              <li key={`${r.priority}-${r.state}`}>
+                Priority {r.priority} · {r.state}: {r.count}
+              </li>
             ))}
-          </tbody>
-        </table>
-      </section>
-    </main>
+          </ul>
+        </section>
+
+        <div className="stat-row">
+          <div className="stat">
+            <div className="label">Manual follow-up backlog</div>
+            <div className="value">{data.manualFollowUpBacklog}</div>
+          </div>
+          <div className="stat">
+            <div className="label">EHR sync health</div>
+            <div style={{ marginTop: "0.35rem" }}>
+              Pending {data.ehrSyncHealth.pending} · Synced {data.ehrSyncHealth.synced} ·{" "}
+              <span className={data.ehrSyncHealth.failed > 0 ? "badge danger" : "badge"}>Failed {data.ehrSyncHealth.failed}</span>
+            </div>
+          </div>
+        </div>
+
+        <section className="card">
+          <h2>Protocols</h2>
+          <ul style={{ paddingLeft: "1.25rem" }}>
+            {data.protocolVersions.map((p) => (
+              <li key={p.id}>
+                {p.specialty ?? "general"} — effective {p.effective_from ? new Date(p.effective_from).toLocaleDateString() : "n/a"}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card" style={{ padding: 0, paddingTop: "1.25rem" }}>
+          <h2 style={{ padding: "0 1.25rem" }}>Reviewer activity</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Reviewer</th>
+                <th>Resolved</th>
+                <th>Median time to resolve</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.reviewerStats.map((r) => (
+                <tr key={r.reviewerUserId}>
+                  <td>{r.reviewerUserId}</td>
+                  <td>{r.resolvedCount}</td>
+                  <td>{r.medianTimeToResolveSeconds !== null ? `${Math.round(r.medianTimeToResolveSeconds / 60)}m` : "n/a"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </>
   );
 }

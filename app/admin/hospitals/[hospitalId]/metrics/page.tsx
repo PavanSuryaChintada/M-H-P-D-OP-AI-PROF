@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import HospitalNav from "../HospitalNav";
 
 // Doc 19 deliverable — internal /admin/metrics view.
 interface Metrics {
@@ -30,29 +31,68 @@ export default function MetricsPage() {
     return () => clearInterval(interval);
   }, [load]);
 
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (!data) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">Loading…</main>
+      </>
+    );
+  }
 
   return (
-    <main style={{ maxWidth: 800, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Metrics</h1>
-      <ul>
-        <li>Capacity utilization: {(data.capacityUtilization * 100).toFixed(0)}%</li>
-        <li>Retry backlog: {data.retryBacklog}</li>
-        <li>Cutoff-approaching (Tier 1): {data.cutoffApproaching}</li>
-        <li>EHR failures: {data.ehrFailures}</li>
-        <li>Call failures: {data.callFailures}</li>
-        <li>Notification failures: {data.notificationFailures}</li>
-        <li>Stuck tasks: {data.stuckTaskCount}</li>
-        <li>Oldest pending: {data.queueDepth.oldestPendingAgeSeconds !== null ? `${Math.round(data.queueDepth.oldestPendingAgeSeconds / 60)}m` : "n/a"}</li>
-      </ul>
-      <h2>Queue depth by state</h2>
-      <ul>
-        {Object.entries(data.queueDepth.byState).map(([state, count]) => (
-          <li key={state}>
-            {state}: {count}
-          </li>
-        ))}
-      </ul>
-    </main>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1 style={{ marginBottom: "1rem" }}>Metrics</h1>
+
+        <div className="stat-row">
+          <div className="stat">
+            <div className="label">Capacity utilization</div>
+            <div className="value">{(data.capacityUtilization * 100).toFixed(0)}%</div>
+          </div>
+          <div className="stat">
+            <div className="label">Retry backlog</div>
+            <div className="value">{data.retryBacklog}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Cutoff-approaching</div>
+            <div className="value">{data.cutoffApproaching}</div>
+          </div>
+        </div>
+        <div className="stat-row">
+          <div className="stat">
+            <div className="label">EHR failures</div>
+            <div className="value">{data.ehrFailures}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Call failures</div>
+            <div className="value">{data.callFailures}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Notification failures</div>
+            <div className="value">{data.notificationFailures}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Stuck tasks</div>
+            <div className="value">{data.stuckTaskCount}</div>
+          </div>
+        </div>
+
+        <section className="card">
+          <h2>Queue depth by state</h2>
+          <p style={{ marginBottom: "0.5rem", color: "var(--muted)" }}>
+            Oldest pending: {data.queueDepth.oldestPendingAgeSeconds !== null ? `${Math.round(data.queueDepth.oldestPendingAgeSeconds / 60)}m` : "n/a"}
+          </p>
+          <ul style={{ paddingLeft: "1.25rem" }}>
+            {Object.entries(data.queueDepth.byState).map(([state, count]) => (
+              <li key={state}>
+                {state}: {count}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </main>
+    </>
   );
 }

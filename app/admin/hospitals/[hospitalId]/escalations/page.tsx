@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import HospitalNav from "../HospitalNav";
 
 // Doc 17 R5 — reviewer work queue: OVERDUE pinned top, then priority desc,
 // then age asc (the API already returns it in this order — this page just
@@ -50,58 +51,57 @@ export default function EscalationQueuePage() {
   }, [hospitalId, status]);
 
   return (
-    <main style={{ maxWidth: 900, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Escalation queue</h1>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <h1 style={{ marginBottom: "1rem" }}>Escalation queue</h1>
 
-      <div style={{ marginBottom: "1rem" }}>
-        {STATUS_FILTERS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatus(s)}
-            style={{
-              marginRight: "0.5rem",
-              fontWeight: status === s ? "bold" : "normal",
-              border: "1px solid #ccc",
-              padding: "0.25rem 0.5rem",
-              background: status === s ? "#eee" : "white",
-            }}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
+        <div style={{ marginBottom: "1.25rem", display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+          {STATUS_FILTERS.map((s) => (
+            <button key={s} onClick={() => setStatus(s)} className={status === s ? "primary" : ""}>
+              {s}
+            </button>
+          ))}
+        </div>
 
-      {error && <p style={{ color: "red" }}>Error: {error}</p>}
-      {loading ? (
-        <p>Loading…</p>
-      ) : escalations.length === 0 ? (
-        <p>No escalations{status !== "ALL" ? ` with status ${status}` : ""}.</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-              <th style={{ padding: "0.5rem" }}>Status</th>
-              <th style={{ padding: "0.5rem" }}>Priority</th>
-              <th style={{ padding: "0.5rem" }}>Trigger</th>
-              <th style={{ padding: "0.5rem" }}>Age</th>
-              <th style={{ padding: "0.5rem" }} />
-            </tr>
-          </thead>
-          <tbody>
-            {escalations.map((e) => (
-              <tr key={e.id} style={{ borderBottom: "1px solid #eee", background: e.state === "OVERDUE" ? "#fee" : "white" }}>
-                <td style={{ padding: "0.5rem", fontWeight: e.state === "OVERDUE" ? "bold" : "normal" }}>{e.state}</td>
-                <td style={{ padding: "0.5rem" }}>{e.priority}</td>
-                <td style={{ padding: "0.5rem" }}>{e.triggerReason}</td>
-                <td style={{ padding: "0.5rem" }}>{ageLabel(e.createdAt)}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  <Link href={`/admin/hospitals/${hospitalId}/escalations/${e.id}`}>Open</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+        {error && <div className="card alert">Error: {error}</div>}
+        {loading ? (
+          <p>Loading…</p>
+        ) : escalations.length === 0 ? (
+          <p className="card">No escalations{status !== "ALL" ? ` with status ${status}` : ""}.</p>
+        ) : (
+          <div className="card" style={{ padding: 0 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Trigger</th>
+                  <th>Age</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {escalations.map((e) => (
+                  <tr key={e.id}>
+                    <td>
+                      <span className={e.state === "OVERDUE" ? "badge danger" : "badge"}>{e.state}</span>
+                    </td>
+                    <td>{e.priority}</td>
+                    <td>{e.triggerReason}</td>
+                    <td style={{ color: "var(--muted)" }}>{ageLabel(e.createdAt)}</td>
+                    <td>
+                      <Link href={`/admin/hospitals/${hospitalId}/escalations/${e.id}`} className="btn">
+                        Open →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+    </>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import HospitalNav from "../../HospitalNav";
 
 interface PatientDetail {
   patient?: { id: string; mrn: string; firstName: string; lastName: string; phone?: string; email?: string };
@@ -39,8 +41,24 @@ export default function PatientDetailPage() {
       });
   }, [hospitalId, patientId]);
 
-  if (error) return <main style={{ padding: "2rem" }}>Error: {error}</main>;
-  if (!data) return <main style={{ padding: "2rem" }}>Loading…</main>;
+  if (error) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">
+          <div className="card alert">Error: {error}</div>
+        </main>
+      </>
+    );
+  }
+  if (!data) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">Loading…</main>
+      </>
+    );
+  }
 
   const name = data.patient
     ? `${data.patient.firstName} ${data.patient.lastName}`
@@ -48,57 +66,67 @@ export default function PatientDetailPage() {
   const mrn = data.patient?.mrn ?? data.mrn;
 
   return (
-    <main style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1>{name}</h1>
-      <p>MRN: {mrn}</p>
+    <>
+      <HospitalNav hospitalId={hospitalId} />
+      <main className="page">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "1.25rem" }}>
+          <div>
+            <h1>{name}</h1>
+            <p style={{ color: "var(--muted)" }}>MRN: {mrn}</p>
+          </div>
+          <Link href={`/admin/hospitals/${hospitalId}/patients/${patientId}/timeline`} className="btn">
+            View timeline →
+          </Link>
+        </div>
 
-      <section>
-        <h2>Encounters</h2>
-        <ul>
-          {data.encounters.map((e) => (
-            <li key={e.id}>
-              Discharged {new Date(e.dischargeAt).toLocaleString()} — risk <strong>{e.riskLevel}</strong> — follow-up
-              window {e.followUpWindowHours}h
-              {e.dischargeInstructions && <div style={{ color: "#666" }}>{e.dischargeInstructions}</div>}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {data.conditions && (
-        <section>
-          <h2>Conditions</h2>
-          <ul>
-            {data.conditions.map((c) => (
-              <li key={c.id}>{c.codeText}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {data.medications && data.medications.length > 0 && (
-        <section>
-          <h2>Medications</h2>
-          <ul>
-            {data.medications.map((m) => (
-              <li key={m.id}>
-                {m.name} {m.dosage ? `(${m.dosage})` : ""}
+        <section className="card">
+          <h2>Encounters</h2>
+          <ul style={{ paddingLeft: "1.25rem" }}>
+            {data.encounters.map((e) => (
+              <li key={e.id} style={{ marginBottom: "0.5rem" }}>
+                Discharged {new Date(e.dischargeAt).toLocaleString()} — risk <strong>{e.riskLevel}</strong> — follow-up
+                window {e.followUpWindowHours}h
+                {e.dischargeInstructions && <div style={{ color: "var(--muted)" }}>{e.dischargeInstructions}</div>}
               </li>
             ))}
           </ul>
         </section>
-      )}
 
-      {data.carePlans && data.carePlans.length > 0 && (
-        <section>
-          <h2>Care plans</h2>
-          <ul>
-            {data.carePlans.map((cp) => (
-              <li key={cp.id}>{cp.title}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </main>
+        {data.conditions && (
+          <section className="card">
+            <h2>Conditions</h2>
+            <ul style={{ paddingLeft: "1.25rem" }}>
+              {data.conditions.map((c) => (
+                <li key={c.id}>{c.codeText}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {data.medications && data.medications.length > 0 && (
+          <section className="card">
+            <h2>Medications</h2>
+            <ul style={{ paddingLeft: "1.25rem" }}>
+              {data.medications.map((m) => (
+                <li key={m.id}>
+                  {m.name} {m.dosage ? `(${m.dosage})` : ""}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {data.carePlans && data.carePlans.length > 0 && (
+          <section className="card">
+            <h2>Care plans</h2>
+            <ul style={{ paddingLeft: "1.25rem" }}>
+              {data.carePlans.map((cp) => (
+                <li key={cp.id}>{cp.title}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </main>
+    </>
   );
 }

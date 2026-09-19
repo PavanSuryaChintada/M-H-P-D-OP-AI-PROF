@@ -23,6 +23,9 @@ import type {
   WriteEncounterNoteInput,
 } from "./types";
 import { EHRCallError } from "./types";
+import { withTimeout } from "../reliability/timeout";
+
+const EHR_TIMEOUT_MS = 10_000; // doc 20 R4
 import { GET as getPatientRoute } from "../../app/api/mock-ehr/patient/route";
 import { GET as getEncounterRoute } from "../../app/api/mock-ehr/encounter/route";
 import { GET as getConditionsRoute } from "../../app/api/mock-ehr/conditions/route";
@@ -37,7 +40,7 @@ const BASE_URL = "http://mock-ehr.internal";
 async function get(routeHandler: (req: Request) => Promise<Response>, path: string, params: Record<string, string>): Promise<unknown> {
   const url = new URL(path, BASE_URL);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const response = await routeHandler(new Request(url));
+  const response = await withTimeout(routeHandler(new Request(url)), EHR_TIMEOUT_MS, "EHR call");
   const body = await response.json();
   if (!response.ok) throw new EHRCallError(response.status, body.error ?? "unknown error");
   return body;
@@ -53,7 +56,7 @@ async function post(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const response = await routeHandler(request);
+  const response = await withTimeout(routeHandler(request), EHR_TIMEOUT_MS, "EHR call");
   const responseBody = await response.json();
   if (!response.ok) throw new EHRCallError(response.status, responseBody.error ?? "unknown error");
   return responseBody as WriteResult;

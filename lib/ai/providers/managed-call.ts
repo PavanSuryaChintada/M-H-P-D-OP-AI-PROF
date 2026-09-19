@@ -8,6 +8,7 @@
 import type { AIProvider, GenerateRequest, GenerateResult, StructuredRequest, StructuredResult } from "./types";
 import { recordAiUsage } from "../../db/repositories/ai-usage";
 import type { TenantContext } from "../../db/tenant";
+import { checkBreaker, recordSuccess, recordFailure, CircuitOpenError } from "../../reliability/circuit-breaker";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 2;
@@ -67,10 +68,24 @@ export async function runGenerate(
   const maxRetries = opts.maxRetries ?? MAX_RETRIES;
   const start = Date.now();
 
+  // Doc 20 R3 — 5 consecutive failures opens the breaker for 60s; an open
+  // breaker fails fast, in the exact same PROVIDER_ERROR shape a real
+  // outage would, so every existing caller (doc 12's repair loop, doc 13's
+  // consensus) already handles it correctly with no changes there.
+  try {
+    checkBreaker(provider.id);
+  } catch (err) {
+    if (err instanceof CircuitOpenError) {
+      return { ok: false, code: "PROVIDER_ERROR", message: err.message };
+    }
+    throw err;
+  }
+
   const outcome = await withRetry(() => withTimeout(provider.generate(req), timeoutMs, provider.id), maxRetries);
   const latencyMs = Date.now() - start;
 
   if ("error" in outcome) {
+    recordFailure(provider.id);
     await recordAiUsage(opts.ctx, {
       agent: opts.agent,
       provider: provider.id,
@@ -85,6 +100,7 @@ export async function runGenerate(
     return { ok: false, code: "PROVIDER_ERROR", message: "provider call failed after retries" };
   }
 
+  recordSuccess(provider.id);
   await recordAiUsage(opts.ctx, {
     agent: opts.agent,
     provider: provider.id,
@@ -110,6 +126,15 @@ export async function runStructured<T>(
   const maxRetries = opts.maxRetries ?? MAX_RETRIES;
   const start = Date.now();
 
+  try {
+    checkBreaker(provider.id);
+  } catch (err) {
+    if (err instanceof CircuitOpenError) {
+      return { ok: false, code: "PROVIDER_ERROR", message: err.message };
+    }
+    throw err;
+  }
+
   const outcome = await withRetry(
     () => withTimeout(provider.generateStructured(req), timeoutMs, provider.id),
     maxRetries,
@@ -119,6 +144,11 @@ export async function runStructured<T>(
   if ("error" in outcome) {
     const isValidationFailure =
       outcome.error instanceof Error && outcome.error.name === "ProviderValidationError";
+    // A malformed-output validation failure isn't a provider-health signal
+    // (doc 20 R2's taxonomy treats it separately — repair once, not
+    // breaker-worthy); only a genuine transport/timeout failure counts
+    // toward the breaker.
+    if (!isValidationFailure) recordFailure(provider.id);
     await recordAiUsage(opts.ctx, {
       agent: opts.agent,
       provider: provider.id,
@@ -139,6 +169,7 @@ export async function runStructured<T>(
     };
   }
 
+  recordSuccess(provider.id);
   await recordAiUsage(opts.ctx, {
     agent: opts.agent,
     provider: provider.id,

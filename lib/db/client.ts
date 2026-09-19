@@ -24,20 +24,26 @@ if (!connectionString) {
 // DATABASE_URL_POOLED nor DATABASE_URL carries a `?sslmode=` query param
 // that would tell it to negotiate TLS on its own.
 //
-// max: 3, not 10 — this module is re-imported fresh in every serverless
-// function instance on Vercel. A pool of 10 made sense for one long-lived
-// worker process; on Vercel, N concurrent invocations each holding up to
-// 10 idle-but-reserved connections can exhaust Supavisor's own upstream
+// Pool size is small ONLY on Vercel, and that's deliberate, not
+// superstition: this module is re-imported fresh in every serverless
+// function instance there, so N concurrent invocations each holding up to
+// `max` idle-but-reserved connections can exhaust Supavisor's own upstream
 // pool (a small, fixed number on Supabase's free tier) long before actual
 // concurrent DB work does — every symptom of that (slow, then 503s, every
 // health component UNAVAILABLE, because getSystemHealth's own `select 1`
-// can't get a connection either) was seen live on the deployed app. 3 is
-// a compromise, not a superstition: 1 starved getSystemHealth's own
-// Promise.all fan-out across hospitals (measured — it serialized 31
-// hospitals onto a single connection and took minutes instead of
-// seconds); 3 gives that real, already-existing concurrency need some
-// room while staying far below the old per-instance ceiling of 10.
-const queryClient = postgres(connectionString, { max: 3, prepare: false, ssl: "require" });
+// couldn't get a connection either) was seen live on the deployed app.
+//
+// That multiplication risk is specific to "many separate serverless
+// instances," not to "one process doing several things at once" — local
+// dev, the test suite (which simulates up to 50 concurrent workers to
+// prove doc 07's claim-concurrency guarantees, and legitimately needs
+// pool headroom for that), and the Railway worker (one long-lived
+// process, never multiplied) all get the larger pool that was always
+// safe for them. process.env.VERCEL is set to "1" by Vercel's platform
+// on every serverless invocation; nothing else in this project's
+// deployment sets it.
+const isVercel = process.env.VERCEL === "1";
+const queryClient = postgres(connectionString, { max: isVercel ? 3 : 10, prepare: false, ssl: "require" });
 
 export const db = drizzle(queryClient, { schema });
 export type Database = typeof db;

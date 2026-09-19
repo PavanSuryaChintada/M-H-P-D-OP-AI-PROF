@@ -38,8 +38,16 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets and image optimization; run on everything else
-    // (in particular, every /api/* route).
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Skip static assets, image optimization, AND /api/* — every API route
+    // already calls supabase.auth.getUser() itself via guard()/
+    // resolveTenantContext (lib/auth/session.ts), and unlike a Server
+    // Component, a route handler CAN write its own refreshed cookies (see
+    // lib/supabase/server.ts's setAll - the try/catch there only exists for
+    // the Server Component case). Running this here too meant every single
+    // API request paid Supabase's Auth server round trip (measured at
+    // ~1.2s) TWICE for no benefit - this middleware's only real job is
+    // refreshing the cookie for Server Component pages, which can't do it
+    // themselves.
+    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -364,3 +364,22 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 **Verified**: chaos test passes — zero duplicate calls, zero tasks left in CALLING/CONNECTED after reaping, capacity returns to exactly 0. Circuit-breaker and shutdown-controller unit tests pass. Full suite re-run clean after resetting the local dev Postgres container (it had accumulated hundreds of throwaway hospitals across this session's testing, which was slowing down doc 19's per-hospital health check — not a real bug, the same known scaling note already in `docs/dashboards-and-analytics.md`).
 
 **Deferred**: `withIdempotency()` not yet wired into notification/discharge-ingestion call sites (both already have narrower, working ad-hoc protections); full external-call timeout coverage beyond AI/EHR.
+
+---
+
+## 2026-09-19 (same day, later) — Doc 21: Safety Evaluation & False-Negative Measurement
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Authored `eval/dataset/v1/` — 60 cases across all 7 required categories (12 routine, 10 concerning, 10 urgent, 8 ambiguous, 8 incomplete-information, 6 conflicting-information, 6 adversarial), each with a real transcript and pre-authored representative LLM-assessor outputs.
+- Built `eval/runner.ts` (`npm run eval:safety`) running the **real** rule engine and **real** consensus algorithm — the actual doc 12/13 functions — against every case. The two LLM assessor slots use pre-authored outputs since this build has no live provider API keys (same `MockProvider`-only pattern as every other test this session); documented as an explicit, honest methodology limitation in `docs/safety-evaluation.md`, not a hidden shortcut.
+- Result: **0.00% false-negative rate**, 0 false positives, all 6 adversarial cases' escalation decisions unaffected by the embedded prompt injections (direct "ignore previous instructions," a fake system-prompt block, a fake retrieved-document injection, and a patient minimizing while describing a real red flag — all four R2-required patterns present).
+- **Genuine finding, not fabricated**: per-assessor accuracy shows the rule engine alone at 65% vs. the LLM mocks at 90-97% — not because it's unreliable on what it detects (100% correct on every case containing a known red-flag phrase) but because it has zero concept of ambiguity or missing information, so it mechanically calls all 22 ambiguous/incomplete/conflicting cases "routine" alone. This is exactly the "does the rule engine catch what the LLMs miss" comparison R4 asks for, surfaced by actually running the algorithm, not asserted.
+- `--compare <path>` regression mode: exits non-zero if FN rate increases or an adversarial case's decision changes. Not wired into CI — documented reasoning: the dataset is fixed/deterministic, so a CI re-run would only catch a rule-engine/consensus regression, not real model drift; left as a manual gate given the time budget.
+- `/admin/eval` page (gated by `guardPlatformAdmin`, since a report isn't hospital-scoped) renders the latest report without requiring anyone to run the harness themselves.
+- `docs/safety-evaluation.md`: methodology, results table, 3 worked disagreement examples with real transcript quotes, and concrete improvements (a deterministic "conversation ended early" signal for the rule engine; re-running against live models once keys exist).
+
+**Verified**: `npm run eval:safety` runs end to end, prints the FN rate, exits 0; re-run with `--compare` against the first report confirms reproducibility (identical 0.00% FN rate both times) and the regression gate itself exits cleanly. `npx tsc --noEmit` and `npx eslint` clean.
+
+**Deferred**: re-running against live Claude/GPT API calls (no keys configured in this environment); wiring the regression gate into CI.

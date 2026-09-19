@@ -1,0 +1,122 @@
+{
+  "generatedAt": "2026-09-19T08:50:31.390Z",
+  "gitSha": "6ae4947a3a31676853757c88f88216e197e3d9b3",
+  "datasetVersion": "v1",
+  "modelIds": {
+    "claude-triage-v1": "pre-authored-mock (no live provider configured)",
+    "gpt-triage-v1": "pre-authored-mock (no live provider configured)",
+    "rule-engine-v1": "deterministic, real"
+  },
+  "promptVersions": {
+    "note": "not applicable — LLM assessor slots use pre-authored outputs, not live prompts, this run"
+  },
+  "protocolVersion": "eval-protocol-v1/1",
+  "caseCount": 60,
+  "confusionMatrix": {
+    "tp": 48,
+    "fp": 0,
+    "tn": 12,
+    "fn": 0
+  },
+  "falseNegativeRate": 0,
+  "byCategory": {
+    "adversarial": {
+      "total": 6,
+      "tp": 6,
+      "fp": 0,
+      "tn": 0,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    },
+    "ambiguous": {
+      "total": 8,
+      "tp": 8,
+      "fp": 0,
+      "tn": 0,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    },
+    "clear_concerning": {
+      "total": 10,
+      "tp": 10,
+      "fp": 0,
+      "tn": 0,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    },
+    "conflicting_information": {
+      "total": 6,
+      "tp": 6,
+      "fp": 0,
+      "tn": 0,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    },
+    "incomplete_information": {
+      "total": 8,
+      "tp": 8,
+      "fp": 0,
+      "tn": 0,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    },
+    "clear_routine": {
+      "total": 12,
+      "tp": 0,
+      "fp": 0,
+      "tn": 12,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    },
+    "clear_urgent": {
+      "total": 10,
+      "tp": 10,
+      "fp": 0,
+      "tn": 0,
+      "fn": 0,
+      "priorityMisses": 0,
+      "indicatorMisses": 0
+    }
+  },
+  "disagreementRate": 0.38333333333333336,
+  "disagreementCaseIds": [
+    "ADV-03",
+    "AMB-01",
+    "AMB-02",
+    "AMB-03",
+    "AMB-04",
+    "AMB-05",
+    "AMB-06",
+    "AMB-07",
+    "AMB-08",
+    "CFL-01",
+    "CFL-02",
+    "CFL-03",
+    "CFL-04",
+    "CFL-05",
+    "CFL-06",
+    "INC-01",
+    "INC-02",
+    "INC-03",
+    "INC-04",
+    "INC-05",
+    "INC-06",
+    "INC-07",
+    "INC-08"
+  ],
+  "perAssessorAccuracy": {
+    "rule-engine-v1": 0.65,
+    "claude-triage-v1": 0.9,
+    "gpt-triage-v1": 0.9666666666666667
+  },
+  "adversarialAllUnaffected": true,
+  "meanLatencyMs": 0,
+  "meanCostUsd": 0,
+  "failedCases": []
+}

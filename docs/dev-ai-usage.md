@@ -290,3 +290,22 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 **Verified**: `tests/events-and-notifications.test.ts` (3 tests) — a redelivered event (same row, simulating a crash before it was marked done) produces exactly one notification via the handler's own idempotency guard, not just the event layer's; an acknowledgment that happens before a scheduled timeout-check fires converges without over-notifying; an unacknowledged escalation reaches the backup reviewer and then `OVERDUE`. Full suite re-run clean.
 
 **Deferred**: dead-letter admin panel, in-app notification centre, and the hospital config UI for the workflow knobs — all doc 17/18 frontend work. Handlers for the rest of the event catalogue. `callback_reminder_lead_time` (R6) — not exercised by any required test.
+
+---
+
+## 2026-09-19 (same day, later) — Doc 17: Escalation Management & Human-in-the-Loop (first real frontend)
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Built the guarded escalation lifecycle (`lib/escalations/lifecycle.ts`), reconciling R1's simple `OPEN→ASSIGNED→IN_REVIEW→WAITING_FOR_INFORMATION→RESOLVED→CLOSED` diagram with `ACKNOWLEDGED`/`OVERDUE`, which doc 16 (built first) already added — documented as a deliberate reconciliation, not a silent override, in `docs/escalation-management.md`.
+- `transitionEscalationState` (`lib/db/repositories/escalations.ts`) is now the one place `escalations.state` is ever written after creation: validates, writes the transition row, and writes an audit entry with before/after state — same shape as doc 07's outreach-task state machine.
+- **Real bug, same shape as doc 14/15's audit-log FK issue**: refactoring doc 16's `acknowledgeEscalation`/`markEscalationOverdue` to go through this shared transition function broke doc 16's own test suite immediately — its automated timeout chain runs under a synthetic system actor with no real `users.id`, and `writeAuditLog`'s FK rejected it. Fixed with a `skipAudit` flag used only by those two automated transitions, which is also the more correct reading of R6 ("every **human** action" — an automated timeout isn't one).
+- SLA fields (`acknowledged_at`/`time_to_acknowledge_seconds`, `resolved_at`/`time_to_resolve_seconds`) are snapshotted at the moment of transition, not computed on read, so doc 18's dashboards can query them directly.
+- Added `escalation:view`/`escalation:assign` permissions — narrower than the existing `queue:view` (CAMPAIGN_MANAGER can see the call-dispatch queue but not escalations, per R5).
+- One action endpoint (`POST .../escalations/[escalationId]`) dispatches acknowledge/assign/reassign/request-info/resolve/close/create-followup by body, rather than six separate routes; an illegal transition returns 409 with the specific from→to error.
+- **First real frontend of this build**: `/admin/hospitals/[hospitalId]/escalations` (reviewer queue, R5) and `/admin/hospitals/[hospitalId]/escalations/[escalationId]` (the full one-page review screen, R3 — patient summary, transcript with indicator-triggering turns highlighted, all three assessments side by side with the firing consensus rule labelled, expandable protocol evidence, previous outreach history, and the complete action bar), in the same minimal inline-style convention as the existing `/admin/hospitals/[hospitalId]/patients` pages — no design system exists in this codebase yet.
+
+**Verified**: `tests/escalation-lifecycle.test.ts` (6 tests) and 5 new tests in `tests/rbac.test.ts` — illegal transitions rejected including out of a terminal state; a full valid path computes both SLA fields; `no_action_needed_false_positive` recorded as its own outcome; every human action produces the exact expected audit-row sequence with before/after state; queue ordering (OVERDUE > priority > age); CAMPAIGN_MANAGER blocked from view/assign, HOSPITAL_ADMIN can assign but not resolve. `npx tsc --noEmit` and `npx next build` both clean. No interactive browser testing was possible in this environment (no browser tool) — noted explicitly rather than claimed.
+
+**Deferred**: dead-letter panel, notification centre, config UI (doc 16's carryover); a reviewer-picker widget for reassignment (the API accepts an explicit `reviewerUserId`, the UI only self-assigns).

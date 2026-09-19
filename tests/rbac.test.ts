@@ -153,6 +153,43 @@ describe("CLINICAL_REVIEWER can resolve an escalation", () => {
   });
 });
 
+describe("doc 17 — escalation:view and escalation:assign", () => {
+  it("CAMPAIGN_MANAGER cannot view the escalation queue (403) — narrower than the general queue:view", async () => {
+    await actingAs("CAMPAIGN_MANAGER");
+    const result = await guard(hospitalA.id, "escalation:view");
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(403);
+  });
+
+  it("HOSPITAL_ADMIN and CLINICAL_REVIEWER can both view the escalation queue", async () => {
+    await actingAs("HOSPITAL_ADMIN");
+    expect(await guard(hospitalA.id, "escalation:view")).not.toBeInstanceOf(Response);
+    await actingAs("CLINICAL_REVIEWER");
+    expect(await guard(hospitalA.id, "escalation:view")).not.toBeInstanceOf(Response);
+  });
+
+  it("CAMPAIGN_MANAGER cannot assign/acknowledge/request-info (403)", async () => {
+    await actingAs("CAMPAIGN_MANAGER");
+    const result = await guard(hospitalA.id, "escalation:assign");
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(403);
+  });
+
+  it("HOSPITAL_ADMIN and CLINICAL_REVIEWER can both assign/acknowledge/request-info", async () => {
+    await actingAs("HOSPITAL_ADMIN");
+    expect(await guard(hospitalA.id, "escalation:assign")).not.toBeInstanceOf(Response);
+    await actingAs("CLINICAL_REVIEWER");
+    expect(await guard(hospitalA.id, "escalation:assign")).not.toBeInstanceOf(Response);
+  });
+
+  it("HOSPITAL_ADMIN cannot resolve (403) — resolution is CLINICAL_REVIEWER-only even though it can assign", async () => {
+    await actingAs("HOSPITAL_ADMIN");
+    const result = await guard(hospitalA.id, "escalation:resolve");
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(403);
+  });
+});
+
 describe("PLATFORM_ADMIN", () => {
   it("can create a hospital", async () => {
     await actingAs("PLATFORM_ADMIN");

@@ -13,13 +13,22 @@ import type { AIProvider, GenerateRequest, GenerateResult, StructuredRequest, St
 import { ProviderValidationError } from "./types";
 
 export class OpenAIProvider implements AIProvider {
-  readonly id = "openai";
+  readonly id: string;
   private client: OpenAI;
   private model: string;
 
-  constructor(apiKey: string, model = "gpt-5") {
-    this.client = new OpenAI({ apiKey });
-    this.model = model;
+  /**
+   * `baseURL` lets this same OpenAI-compatible client reach OpenRouter
+   * instead of OpenAI directly (select-provider.ts's OpenRouter path) -
+   * OpenRouter can proxy to either vendor's models, so `id` is settable
+   * too, to keep the circuit breaker and ai_usage labeling matching
+   * whichever vendor's model is actually being called, not "openai" for
+   * both assessors.
+   */
+  constructor(apiKey: string, options: { model?: string; baseURL?: string; id?: string } = {}) {
+    this.client = new OpenAI({ apiKey, baseURL: options.baseURL });
+    this.model = options.model ?? "gpt-5";
+    this.id = options.id ?? "openai";
   }
 
   async generate(req: GenerateRequest): Promise<GenerateResult> {

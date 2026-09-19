@@ -27,6 +27,13 @@ export async function createCall(ctx: TenantContext, input: CreateCallInput) {
   });
 }
 
+export async function getCallById(ctx: TenantContext, callId: string) {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx.select().from(calls).where(eq(calls.id, callId));
+    return row ?? null;
+  });
+}
+
 /** Doc 07 §5 — the most recent call for this task, to read partial_state back for a resumption after DROPPED. */
 export async function getMostRecentCallForTask(ctx: TenantContext, outreachTaskId: string) {
   return withTenant(ctx, async (tx) => {

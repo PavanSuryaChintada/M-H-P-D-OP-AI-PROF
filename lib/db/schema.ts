@@ -702,6 +702,9 @@ export const documentationRecords = pgTable("documentation_records", {
   followUpActions: jsonb("follow_up_actions"), // [{action, owner_role, due_by}]
   ehrSyncStatus: ehrSyncStatusEnum("ehr_sync_status").notNull().default("PENDING"),
   ehrSyncError: text("ehr_sync_error"),
+  ehrIdempotencyKey: text("ehr_idempotency_key"),
+  ehrSyncRetryCount: integer("ehr_sync_retry_count").notNull().default(0),
+  ehrSyncNextRetryAt: timestamp("ehr_sync_next_retry_at", { withTimezone: true }),
   modelProvider: text("model_provider"),
   promptVersion: text("prompt_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

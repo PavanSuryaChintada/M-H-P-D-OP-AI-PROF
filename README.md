@@ -60,7 +60,11 @@ These are prototype-only demo accounts on a non-production Supabase project — 
 
 ### Known limitations
 
-See `docs/testing.md` ("Tier 3 — nice, deliberately not done") and each doc's own write-up in `docs/` for what was cut and why, per PRD §34's own instruction to cut and say so rather than claim more than was built.
+See `docs/known-limitations.md` for the full list (what was simplified, why, what production would require), plus `docs/testing.md` ("Tier 3 — nice, deliberately not done") for testing-specific gaps, per PRD §34's own instruction to cut and say so rather than claim more than was built.
+
+## Demo video
+
+Not recorded — see `docs/known-limitations.md`. When recorded, the unlisted link goes here.
 
 ## Testing
 
@@ -121,8 +125,8 @@ If you fall behind, cut from doc 25's list and document the cut. Never cut 06, 0
 | 21 | **Safety evaluation & false-negative rate** | **Highest** | [spec](prd-specs/21-safety-evaluation-harness.md) | [docs/safety-evaluation.md](docs/safety-evaluation.md) |
 | 22 | Testing strategy | Critical | [spec](prd-specs/22-testing.md) | [docs/testing.md](docs/testing.md) |
 | 23 | Deployment & demo access | Required | [spec](prd-specs/23-deployment-and-demo.md) | [docs/deployment.md](docs/deployment.md) |
-| 24 | Written deliverables & demo video | Required | [spec](prd-specs/24-written-deliverables.md) | this README + `docs/dev-ai-usage.md` |
-| 25 | Optional features ranked by marks/hour | Enhancement | [spec](prd-specs/25-optional-standout-features.md) | not attempted — out of time budget |
+| 24 | Written deliverables & demo video | Required | [spec](prd-specs/24-written-deliverables.md) | [docs/architecture.md](docs/architecture.md), [docs/known-limitations.md](docs/known-limitations.md), `docs/dev-ai-usage.md` |
+| 25 | Optional features ranked by marks/hour | Enhancement | [spec](prd-specs/25-optional-standout-features.md) | Tier A already built as core scope; B/C not attempted, D explicitly declined — see [docs/known-limitations.md](docs/known-limitations.md) |
 
 ## The three things that decide this submission
 1. **The queue is provably correct under concurrency** — docs 06–08.

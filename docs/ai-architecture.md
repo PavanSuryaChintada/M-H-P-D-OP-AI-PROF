@@ -54,6 +54,10 @@ One per agent, scoped to exactly the fields that agent's spec names — never th
 
 Every builder returns `contextTokens` (chars/4 estimate) alongside its data, so a caller logs context size per call per §5 — a cost decision and a safety one, since irrelevant history is a hallucination surface.
 
+## Observed cost and latency
+
+Honestly: none. `ai_usage`/`recordAiUsage()` (above) capture cost and latency on every real provider call, but no real (paid) provider call has ever run in this build — no API keys are configured in this environment, so every agent invocation goes through `MockProvider` by the deliberate scope decision made in doc 10/13. The instrumentation is real and would populate the moment a real provider ran; the number today is zero calls observed, not a rounded-away one. See `docs/known-limitations.md`.
+
 ## What doc 09 does not cover
 
 - The actual conversation loop, call record, and call simulator — doc 10.

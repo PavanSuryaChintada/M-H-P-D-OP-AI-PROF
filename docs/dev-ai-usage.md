@@ -309,3 +309,20 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 **Verified**: `tests/escalation-lifecycle.test.ts` (6 tests) and 5 new tests in `tests/rbac.test.ts` — illegal transitions rejected including out of a terminal state; a full valid path computes both SLA fields; `no_action_needed_false_positive` recorded as its own outcome; every human action produces the exact expected audit-row sequence with before/after state; queue ordering (OVERDUE > priority > age); CAMPAIGN_MANAGER blocked from view/assign, HOSPITAL_ADMIN can assign but not resolve. `npx tsc --noEmit` and `npx next build` both clean. No interactive browser testing was possible in this environment (no browser tool) — noted explicitly rather than claimed.
 
 **Deferred**: dead-letter panel, notification centre, config UI (doc 16's carryover); a reviewer-picker widget for reassignment (the API accepts an explicit `reviewerUserId`, the UI only self-assigns).
+
+---
+
+## 2026-09-19 (same day, later) — Doc 18: Dashboards & Analytics
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Built the analytics query layer (`lib/analytics/`): campaign-manager (progress funnel, capacity gauge, queue depth, cutoff-approaching/Tier-1 count, retry backlog, upcoming callbacks), hospital-admin (overview, escalation counts, manual follow-up backlog, EHR sync health, protocol versions, per-reviewer median time-to-resolve), platform-admin (per-hospital activity + AI usage), and patient-timeline (merges calls/escalations/documentation/follow-up tasks into one chronological feed).
+- **Platform Admin aggregates never bypass RLS** — doc 01's own explicit rule. Every tenant table's RLS policy FORCEs row security on `app.hospital_id`; there is no query shape that reads across hospitals through `app_user` without it. Implemented as a per-hospital loop under `withHospitalContext`, summed in application code — never a single unscoped cross-hospital query. This also mechanically enforces "aggregates only" (R3): nothing here can select a patient-level row from an unscoped hospital.
+- Built all four dashboards' frontend pages (Campaign Manager, Hospital Admin, Platform Admin, patient timeline), 5-second polling per R6's explicit "no websockets" instruction. Reused doc 06's existing score-breakdown endpoint for the "why this order?" popover and doc 05's existing campaign-transition endpoint for start/pause/resume/cancel controls, rather than rebuilding either.
+- Added the required test (`tests/analytics-tenant-isolation.test.ts`): seeds Hospital B with deliberately more/different data than Hospital A so a missing `hospital_id` filter would immediately inflate A's numbers, not coincidentally match.
+- **Two real bugs found writing that test** (in the test's own fixture, not the code under test): a patient MRN collision from reusing a loop index across two seeding calls for the same hospital (tripped the real unique constraint); and `createHospital` not auto-creating a `hospital_capacity` row, so the fixture's `UPDATE` silently matched zero rows instead of erroring — the exact silent-no-op class of bug this test exists to catch. Fixed both; documented in `docs/dashboards-and-analytics.md`.
+
+**Verified**: `tests/analytics-tenant-isolation.test.ts` (5 tests) — campaign progress, capacity gauge, hospital overview, escalation counts, and both backlog counts under Hospital A's context never reflect Hospital B's larger, different dataset. `npx tsc --noEmit`, `npx eslint`, and `npx next build` all clean.
+
+**Deferred**: a shared, reusable capacity-gauge component (currently inlined separately in the dashboard and not reused on `/simulation`); a "reprioritise" campaign control (no such concept exists elsewhere in this build); Platform Admin patient-level drill-in and its audit entry (this build's dashboard never offers one, so there's nothing to audit yet).

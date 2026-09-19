@@ -8,7 +8,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { withHospitalContext } from "../db/tenant";
 import { listHospitals } from "../db/repositories/hospitals";
-import { countStuckWorkers } from "../db/repositories/workers";
+import { STUCK_THRESHOLD_SECONDS } from "../db/repositories/workers";
 
 export type ComponentStatus = "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
 export type SystemStatus = "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
@@ -47,6 +47,16 @@ async function checkDatabase(): Promise<ComponentStatus> {
 
 async function getOneHospitalQueueStats(hospitalId: string) {
   return withHospitalContext(hospitalId, async (tx) => {
+    // The stuck-workers count is folded into this same query/transaction
+    // rather than calling countStuckWorkers() (its own separate
+    // withHospitalContext transaction) - awaiting a second transaction
+    // while this one is still open means every in-flight hospital needs
+    // two pool connections at once instead of one. Harmless at a small
+    // pool size or low hospital count; with Promise.all fanning out over
+    // many hospitals against a small pool (serverless-safe sizing, see
+    // db/client.ts), every outer transaction ends up holding a connection
+    // while waiting on an inner one that has nothing left to claim -
+    // a self-inflicted deadlock, not slow network, confirmed live.
     const [row] = await tx.execute<{
       active_calls: number;
       max_calls: number;
@@ -56,6 +66,7 @@ async function getOneHospitalQueueStats(hospitalId: string) {
       failed: string;
       ehr_failed: string;
       ehr_total: string;
+      stuck_workers: string;
     }>(sql`
       select
         coalesce((select current_active_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as active_calls,
@@ -65,10 +76,10 @@ async function getOneHospitalQueueStats(hospitalId: string) {
         (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and tier = 1 and state not in ('COMPLETED','MANUAL_FOLLOW_UP','FAILED','ESCALATED')) as cutoff_risk,
         (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state = 'FAILED') as failed,
         (select count(*) from documentation_records where hospital_id = ${hospitalId} and ehr_sync_status = 'FAILED' and created_at > now() - interval '1 hour') as ehr_failed,
-        (select count(*) from documentation_records where hospital_id = ${hospitalId} and created_at > now() - interval '1 hour') as ehr_total
+        (select count(*) from documentation_records where hospital_id = ${hospitalId} and created_at > now() - interval '1 hour') as ehr_total,
+        (select count(*) from workers where hospital_id = ${hospitalId} and last_heartbeat_at < now() - make_interval(secs => ${STUCK_THRESHOLD_SECONDS})) as stuck_workers
     `);
-    const stuckWorkers = await countStuckWorkers(hospitalId);
-    return { row, stuckWorkers };
+    return { row, stuckWorkers: Number(row.stuck_workers) };
   });
 }
 

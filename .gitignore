@@ -45,3 +45,6 @@ next-env.d.ts
 # sim/fixtures/queue-sim-patients.json is the committed input, not this.
 sim/runs/*
 !sim/runs/.gitkeep
+
+# Plain-English commit log for the user's own reference — local only, never pushed.
+COMMIT_LOG_PLAIN_ENGLISH.md

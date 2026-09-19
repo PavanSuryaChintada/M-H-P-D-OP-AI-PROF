@@ -836,6 +836,21 @@ export const hospitalCapacity = pgTable("hospital_capacity", {
   check("hospital_capacity_bounds", sql`${t.currentActiveCalls} >= 0 AND ${t.currentActiveCalls} <= ${t.maxConcurrentCalls}`),
 ]);
 
+// Doc 19 R7 — worker heartbeats. A worker in this codebase (queue claim,
+// the reaper, the event dispatcher) processes one hospital's work at a
+// time (see claimNextTask(hospitalId, ...)), so a heartbeat row is
+// tenant-scoped like everything else rather than a global fleet table.
+export const workers = pgTable("workers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  workerId: text("worker_id").notNull(), // caller-assigned instance name, e.g. "queue-worker-1"
+  lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("workers_hospital_worker_idx").on(t.hospitalId, t.workerId),
+  index("workers_hospital_idx").on(t.hospitalId),
+]);
+
 // ---------------------------------------------------------------------------
 // Tables that carry hospital_id and therefore are subject to RLS in rls.sql.
 // Kept in one place so the SQL generator and the tests can stay in sync.
@@ -873,6 +888,7 @@ export const TENANT_TABLE_NAMES = [
   "campaign_state_transitions",
   "eligibility_evaluations",
   "ehr_idempotency_records",
+  "workers",
 ] as const;
 
 // ---------------------------------------------------------------------------

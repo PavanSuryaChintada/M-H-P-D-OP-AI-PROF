@@ -106,6 +106,10 @@ export const escalationStateEnum = pgEnum("escalation_state", [
   "WAITING_FOR_INFORMATION",
   "RESOLVED",
   "CLOSED",
+  // Doc 16 R5 — the escalation notification chain's own states, added
+  // after doc 13 (which never needed to distinguish "seen" from "open").
+  "ACKNOWLEDGED",
+  "OVERDUE",
 ]);
 
 // PRD §15
@@ -152,6 +156,12 @@ export const eventStatusEnum = pgEnum("event_status", [
   "PENDING",
   "PROCESSED",
   "FAILED",
+  // Doc 16 R1/R4 — PROCESSING is held only while a worker's transaction has
+  // the row locked (never observed outside that transaction); DEAD is the
+  // terminal dead-letter state after max_attempts, distinct from FAILED
+  // (still retryable) so the two are never confused in the dead-letter list.
+  "PROCESSING",
+  "DEAD",
 ]);
 
 // Doc 14 R2/R6 — a failed EHR sync must be visible and retryable, never
@@ -720,6 +730,12 @@ export const events = pgTable("events", {
   payload: jsonb("payload"),
   status: eventStatusEnum("status").notNull().default("PENDING"),
   idempotencyKey: text("idempotency_key").notNull(),
+  // Doc 16 R5 — "implement as a scheduled follow-up event, not setTimeout."
+  // A dispatcher poll only claims rows where scheduled_for <= now(), which
+  // is what lets the escalation notification chain's "wait N minutes" step
+  // survive a restart (a setTimeout would not).
+  scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull().defaultNow(),
+  attempts: integer("attempts").notNull().default(0),
   processedAt: timestamp("processed_at", { withTimezone: true }),
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -737,6 +753,7 @@ export const notifications = pgTable("notifications", {
   body: text("body").notNull(),
   status: notificationStatusEnum("status").notNull().default("PENDING"),
   relatedEscalationId: uuid("related_escalation_id").references(() => escalations.id),
+  attempts: integer("attempts").notNull().default(0),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -99,6 +99,13 @@
       "when": 1789790951765,
       "tag": "0013_doc14_15_ehr_sync_retry",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789792411842,
+      "tag": "0014_doc16_events_notifications",
+      "breakpoints": true
     }
   ]
 }

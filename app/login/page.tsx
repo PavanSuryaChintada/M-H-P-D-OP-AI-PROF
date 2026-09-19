@@ -27,11 +27,27 @@ export default function LoginPage() {
     setSubmitting(true);
     const supabase = createSupabaseBrowserClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
     if (signInError) {
+      setSubmitting(false);
       setError(signInError.message);
       return;
     }
+
+    // Platform Admin is the only role allowed to see /admin/hospitals (the
+    // full cross-hospital list, by design - see app/api/hospitals/route.ts).
+    // Every other role has exactly one real hospital in this demo; send
+    // them straight there instead of a page that 403s for them.
+    try {
+      const res = await fetch("/api/me");
+      const me = res.ok ? await res.json() : null;
+      if (me && !me.isPlatformAdmin && me.hospitals?.length === 1) {
+        router.push(`/admin/hospitals/${me.hospitals[0].hospitalId}`);
+        return;
+      }
+    } catch {
+      // Fall through to the default destination below.
+    }
+    setSubmitting(false);
     router.push("/admin/hospitals");
   }
 

@@ -11,6 +11,25 @@ export async function listOutreachTasksForPatient(ctx: TenantContext, patientId:
   return withTenant(ctx, async (tx) => tx.select().from(outreachTasks).where(eq(outreachTasks.patientId, patientId)));
 }
 
+/** Doc 18 R1 — the live queue table: tier/score-ordered, same ordering as claimNextTask's own query. */
+export async function listQueueTasksForCampaign(ctx: TenantContext, campaignId: string) {
+  return withTenant(ctx, async (tx) =>
+    tx
+      .select({
+        id: outreachTasks.id,
+        patientId: outreachTasks.patientId,
+        state: outreachTasks.state,
+        tier: outreachTasks.tier,
+        priorityScore: outreachTasks.priorityScore,
+        attemptCount: outreachTasks.attemptCount,
+        createdAt: outreachTasks.createdAt,
+      })
+      .from(outreachTasks)
+      .where(and(eq(outreachTasks.hospitalId, ctx.hospitalId), eq(outreachTasks.campaignId, campaignId)))
+      .orderBy(outreachTasks.tier, sql`${outreachTasks.priorityScore} desc`, outreachTasks.createdAt),
+  );
+}
+
 export async function getTaskById(ctx: TenantContext, taskId: string) {
   return withTenant(ctx, async (tx) => {
     const [row] = await tx.select().from(outreachTasks).where(eq(outreachTasks.id, taskId));

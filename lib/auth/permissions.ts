@@ -27,6 +27,7 @@ export type Action =
   | "escalation:resolve"
   | "escalation:view" // doc 17 R5 — the reviewer work queue and review screen. Narrower than queue:view: CAMPAIGN_MANAGER sees the call queue but not clinical escalation content.
   | "escalation:assign" // doc 17 R3 — acknowledge/assign/reassign/request-info/create-followup-task: lower stakes than resolve, but still not open to CAMPAIGN_MANAGER.
+  | "hospital:view_dashboard" // doc 18 R2 — the Hospital Admin dashboard (escalation counts, EHR health, reviewer stats). HOSPITAL_ADMIN only, unlike hospital:read which every role needs just to resolve a TenantContext at all.
   | "analytics:platform_aggregate";
 
 /**
@@ -119,6 +120,12 @@ const MATRIX: Record<Action, Record<Role, Grant>> = {
     HOSPITAL_ADMIN: true,
     CAMPAIGN_MANAGER: false,
     CLINICAL_REVIEWER: true,
+  },
+  "hospital:view_dashboard": {
+    PLATFORM_ADMIN: false,
+    HOSPITAL_ADMIN: true,
+    CAMPAIGN_MANAGER: false,
+    CLINICAL_REVIEWER: false,
   },
   "analytics:platform_aggregate": {
     PLATFORM_ADMIN: true,

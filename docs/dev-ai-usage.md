@@ -272,3 +272,21 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 **Verified**: `tests/documentation-and-ehr.test.ts` (3 tests) — a NO_ANSWER attempt still documents and syncs; a fabricated symptom is rejected after both attempts; forcing the mock EHR's failure rate to 1 surfaces `FAILED` with a real error, and the retry worker syncs it once the rate drops back to 0. Full suite (33 files) re-run clean after these changes.
 
 **Deferred**: call detail 3-pane UI, EHR health panel — both doc 17/18 frontend work per this build's established split. A visible "manual task" for exhausted EHR retries depends on doc 16 (events/notifications), not yet built.
+
+---
+
+## 2026-09-19 (same day, later) — Doc 16: Events, Workflows & Notifications
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Built the event bus (`events` table gains `scheduled_for` and `attempts`; `event_status` gains `PROCESSING`/`DEAD`) and a `FOR UPDATE SKIP LOCKED` polling dispatcher (`lib/events/dispatcher.ts`), same claim pattern as the queue's `claimNextTask`.
+- Implemented R5's escalation notification chain exactly as PRD §20 specifies it (`lib/events/handlers/escalation-notifications.ts`): notify primary reviewer → scheduled follow-up event (not `setTimeout`, since that doesn't survive a restart) after `reviewer_timeout_minutes` → if still unacknowledged, notify backup reviewer + schedule a second follow-up → if still unacknowledged, mark the escalation `OVERDUE`. `escalation_state` gained `ACKNOWLEDGED`/`OVERDUE`.
+- Wired it into doc 13: `escalateFromConsensus` now calls `startEscalationNotificationChain` right after creating an escalation.
+- **Real near-miss, caught immediately**: `lib/db/repositories/events.ts` already existed (a doc 05/07 stub, `emitEvent(ctx, input)`, with three real callers — campaign transitions, discharge ingestion, the campaigns route). Writing this doc's new dispatcher plumbing to that same path with `Write` instead of `Edit` overwrote it with an incompatible signature; `tsc --noEmit` failed all three callers immediately with an arg-count mismatch. Recovered the original with `git show HEAD:lib/db/repositories/events.ts` and merged properly — the existing signature is untouched, the new claim/dispatch functions were added alongside it. Same failure mode, same fix, as a doc 11 near-miss earlier this build.
+- Scoped down R2's 16-event catalogue to one fully-wired chain (escalation.created/timeout_check) rather than a handler for every type — the rest is typed and reserved in `lib/events/registry.ts` so future emitEvent calls still type-check, but writing 15 more handlers with no corresponding required test wasn't a good use of the remaining time budget.
+- Email/webhook notification delivery is explicitly not implemented — `deliverNotification` marks those channels `FAILED` with an honest "not implemented in this build" error rather than fabricating a send (R7 explicitly allows this: "email/SMS optional and allowed to fail visibly").
+
+**Verified**: `tests/events-and-notifications.test.ts` (3 tests) — a redelivered event (same row, simulating a crash before it was marked done) produces exactly one notification via the handler's own idempotency guard, not just the event layer's; an acknowledgment that happens before a scheduled timeout-check fires converges without over-notifying; an unacknowledged escalation reaches the backup reviewer and then `OVERDUE`. Full suite re-run clean.
+
+**Deferred**: dead-letter admin panel, in-app notification centre, and the hospital config UI for the workflow knobs — all doc 17/18 frontend work. Handlers for the rest of the event catalogue. `callback_reminder_lead_time` (R6) — not exercised by any required test.

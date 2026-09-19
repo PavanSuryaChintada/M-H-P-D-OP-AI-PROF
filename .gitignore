@@ -46,11 +46,6 @@ next-env.d.ts
 sim/runs/*
 !sim/runs/.gitkeep
 
-# Plain-English commit log for the user's own reference — local only, never pushed.
-COMMIT_LOG_PLAIN_ENGLISH.md
-
 # Local-only reference docs — kept on disk, never pushed.
-HOSTING.md
-INTERVIEW_PREP.md
 REQUIREMENTS_CHECKLIST.md
 data.md

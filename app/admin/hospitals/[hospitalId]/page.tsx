@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import HospitalNav from "./HospitalNav";
+import type { HospitalConfig } from "@/lib/hospitals/config-schema";
 
 interface Hospital {
   id: string;
@@ -10,7 +11,21 @@ interface Hospital {
   shortCode: string;
   timezone: string;
   status: string;
-  config: unknown;
+  config: HospitalConfig | null;
+}
+
+const DAY_LABELS: Record<string, string> = { MON: "Mon", TUE: "Tue", WED: "Wed", THU: "Thu", FRI: "Fri", SAT: "Sat", SUN: "Sun" };
+const DAY_ORDER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+function summarizeCallingHours(hours: HospitalConfig["callingHours"] | undefined): string {
+  if (!hours) return "Not set";
+  const entries = DAY_ORDER.filter((d) => hours[d as keyof typeof hours]);
+  if (entries.length === 0) return "No days configured";
+  const windows = entries.map((d) => `${hours[d as keyof typeof hours]!.start}–${hours[d as keyof typeof hours]!.end}`);
+  const allSame = windows.every((w) => w === windows[0]);
+  if (allSame && entries.length === 7) return `Every day, ${windows[0]}`;
+  if (allSame) return `${entries.map((d) => DAY_LABELS[d]).join("/")}, ${windows[0]}`;
+  return entries.map((d, i) => `${DAY_LABELS[d]} ${windows[i]}`).join(" · ");
 }
 interface EscalationContact {
   id: string;
@@ -70,7 +85,7 @@ export default function HospitalDetailPage() {
       fetch(`/api/hospitals/${hospitalId}/readiness`),
     ]);
     if (hRes.ok) {
-      const h = await hRes.json();
+      const h: Hospital = await hRes.json();
       setHospital(h);
       if (h.config) setConfigText(JSON.stringify(h.config, null, 2));
     }
@@ -179,15 +194,52 @@ export default function HospitalDetailPage() {
 
         <section className="card">
           <h2>Operating configuration</h2>
-          <form onSubmit={handleSaveConfig}>
-            <textarea
-              value={configText}
-              onChange={(e) => setConfigText(e.target.value)}
-              rows={16}
-              style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginBottom: "0.75rem" }}
-            />
-            <button type="submit" className="primary">Save config</button>
-          </form>
+          {hospital.config ? (
+            <div className="stat-row">
+              <div className="stat">
+                <div className="label">Calling hours</div>
+                <div className="value" style={{ fontSize: "1rem" }}>{summarizeCallingHours(hospital.config.callingHours)}</div>
+              </div>
+              <div className="stat">
+                <div className="label">Max concurrent calls</div>
+                <div className="value mono">{hospital.config.maxConcurrentCalls}</div>
+              </div>
+              <div className="stat">
+                <div className="label">Retry policy</div>
+                <div className="value" style={{ fontSize: "1rem" }}>
+                  {hospital.config.defaultRetryPolicy.maxAttempts} attempts &middot; backoff {hospital.config.defaultRetryPolicy.backoffMinutes.join("/")}m &middot; &plusmn;{hospital.config.defaultRetryPolicy.jitterPct}% jitter
+                </div>
+              </div>
+              <div className="stat">
+                <div className="label">Follow-up window</div>
+                <div className="value mono">{hospital.config.defaultFollowUpWindowHours}h</div>
+              </div>
+              <div className="stat">
+                <div className="label">Notifications</div>
+                <div className="value" style={{ fontSize: "1rem" }}>{hospital.config.notificationPreferences.channels.join(" + ")}, {hospital.config.notificationPreferences.reviewerTimeoutMinutes}m timeout</div>
+              </div>
+              <div className="stat">
+                <div className="label">EHR</div>
+                <div className="value" style={{ fontSize: "1rem" }}>{hospital.config.ehrSettings.mode} &middot; {Math.round(hospital.config.ehrSettings.failureRate * 100)}% failure rate</div>
+              </div>
+            </div>
+          ) : (
+            <p className="meta">No configuration set yet &mdash; use the editor below.</p>
+          )}
+
+          <details>
+            <summary style={{ cursor: "pointer", color: "var(--action)", fontSize: "13px" }}>Edit as JSON (advanced)</summary>
+            <form onSubmit={handleSaveConfig} style={{ marginTop: "0.75rem" }}>
+              <textarea
+                value={configText}
+                onChange={(e) => setConfigText(e.target.value)}
+                rows={16}
+                className="mono"
+                style={{ width: "100%", fontSize: "0.85rem", marginBottom: "0.75rem" }}
+              />
+              <button type="submit" className="primary">Save config</button>
+            </form>
+          </details>
         </section>
 
         <section className="card">

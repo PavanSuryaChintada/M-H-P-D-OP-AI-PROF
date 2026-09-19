@@ -3,7 +3,7 @@
 // child rows; the guarded OPEN->ASSIGNED->...->CLOSED lifecycle and the
 // reviewer UI are doc 17's scope.
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
 import { withTenant, type TenantContext } from "../tenant";
 import { escalations, escalationStateTransitions, escalationAssessments } from "../schema";
 import type { AssessorOutcome } from "../../ai/schemas/triage";
@@ -137,4 +137,40 @@ export async function listAssessmentsForEscalation(ctx: TenantContext, escalatio
   return withTenant(ctx, async (tx) =>
     tx.select().from(escalationAssessments).where(eq(escalationAssessments.escalationId, escalationId)),
   );
+}
+
+const TERMINAL_OR_ACKNOWLEDGED_STATES: (typeof escalations.$inferSelect)["state"][] = [
+  "ACKNOWLEDGED",
+  "RESOLVED",
+  "CLOSED",
+  "OVERDUE",
+];
+
+/**
+ * Doc 16 R5's "if not acknowledged" check. Only OPEN/ASSIGNED/IN_REVIEW/
+ * WAITING_FOR_INFORMATION move to ACKNOWLEDGED — already-acknowledged,
+ * resolved, closed, or overdue escalations are left alone, which is what
+ * makes this safe to call from a duplicate-delivered event (R3).
+ */
+export async function acknowledgeEscalation(ctx: TenantContext, escalationId: string) {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx
+      .update(escalations)
+      .set({ state: "ACKNOWLEDGED" })
+      .where(and(eq(escalations.id, escalationId), notInArray(escalations.state, TERMINAL_OR_ACKNOWLEDGED_STATES)))
+      .returning();
+    return row ?? null;
+  });
+}
+
+/** Doc 16 R5 — reached only if the backup-reviewer wait also timed out with no acknowledgment. Never overwrites a state that already moved on (out-of-order safety, R3). */
+export async function markEscalationOverdue(ctx: TenantContext, escalationId: string) {
+  return withTenant(ctx, async (tx) => {
+    const [row] = await tx
+      .update(escalations)
+      .set({ state: "OVERDUE" })
+      .where(and(eq(escalations.id, escalationId), notInArray(escalations.state, TERMINAL_OR_ACKNOWLEDGED_STATES)))
+      .returning();
+    return row ?? null;
+  });
 }

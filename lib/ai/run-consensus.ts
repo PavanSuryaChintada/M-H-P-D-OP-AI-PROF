@@ -9,6 +9,7 @@ import type { TenantContext } from "../db/tenant";
 import type { AssessorOutcome, TriageResult } from "./schemas/triage";
 import { computeConsensus, type ConsensusResult } from "./consensus";
 import { createEscalationFromConsensus, type CreateEscalationInput } from "../db/repositories/escalations";
+import { startEscalationNotificationChain } from "../events/handlers/escalation-notifications";
 
 /**
  * Doc 13 §1 "Run all three assessors in parallel with Promise.allSettled.
@@ -87,5 +88,13 @@ export async function escalateFromConsensus(
   };
 
   const row = await createEscalationFromConsensus(ctx, escalationInput, outcomes, consensus);
+  // Doc 16 R5 — kicks off the notification chain. Idempotent on
+  // escalation id, so a retried call here is a safe no-op, not a
+  // duplicate chain. No primaryReviewerUserId yet: assignment
+  // (escalations.assignedTo) is doc 17's scope and happens after
+  // creation, not at it — the chain still schedules its timeout-check
+  // correctly either way, it just has no one to notify at the primary
+  // stage until a reviewer is assigned.
+  await startEscalationNotificationChain(ctx, row.id);
   return { consensus, escalationId: row.id };
 }

@@ -781,6 +781,25 @@ export const notifications = pgTable("notifications", {
 }, (t) => [index("notifications_hospital_idx").on(t.hospitalId)]);
 
 // ---------------------------------------------------------------------------
+// Doc 20 R1 — generic idempotency store for operations that don't already
+// have an equivalent DB-level guarantee. Most of R1's seven operations
+// already have one, which is a stronger guarantee than a key-value replay
+// table since it can't be bypassed by forgetting to check first: start
+// call / record outcome are enforced by calls' own UNIQUE(outreach_task_id,
+// attempt_number); create escalation by escalations' UNIQUE(outreach_task_
+// id, attempt_number); EHR write by ehr_idempotency_records (doc 15);
+// consume event by events.idempotency_key UNIQUE (doc 16). This table
+// covers the operations that don't: send notification, process discharge.
+export const idempotencyKeys = pgTable("idempotency_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hospitalId: uuid("hospital_id").notNull().references(() => hospitals.id),
+  key: text("key").notNull(),
+  operation: text("operation").notNull(),
+  result: jsonb("result"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("idempotency_keys_hospital_key_idx").on(t.hospitalId, t.key)]);
+
+// ---------------------------------------------------------------------------
 // Observability (doc 19) — audit_log is append-only; see rls.sql for the
 // REVOKE UPDATE, DELETE that enforces R5 at the database level.
 // ---------------------------------------------------------------------------
@@ -889,6 +908,7 @@ export const TENANT_TABLE_NAMES = [
   "eligibility_evaluations",
   "ehr_idempotency_records",
   "workers",
+  "idempotency_keys",
 ] as const;
 
 // ---------------------------------------------------------------------------

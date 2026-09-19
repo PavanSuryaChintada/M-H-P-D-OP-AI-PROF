@@ -97,7 +97,7 @@ declare
     'escalations','escalation_state_transitions','escalation_assessments','documentation_records',
     'events','notifications','audit_log','ai_usage','hospital_capacity',
     'escalation_contacts','campaign_state_transitions','eligibility_evaluations',
-    'ehr_idempotency_records','workers'
+    'ehr_idempotency_records','workers','idempotency_keys'
   ];
 begin
   foreach t in array tenant_tables loop

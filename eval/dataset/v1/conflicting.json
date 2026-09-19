@@ -1,0 +1,86 @@
+[
+  {
+    "id": "CFL-01", "category": "conflicting_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op knee replacement, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How is your pain and swelling?" },
+      { "role": "patient", "text": "The pain is basically gone but honestly the swelling looks worse than the day I left the hospital." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.85, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Pain resolution suggests normal recovery." },
+      "gpt": { "classification": "concerning", "confidence": 0.72, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Worsening swelling despite improved pain is discordant and worth a look." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": [] },
+    "notes": "Two data points pointing opposite directions; assessors disagree on interpretation."
+  },
+  {
+    "id": "CFL-02", "category": "conflicting_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Heart failure discharge, week 2.",
+    "transcript": [
+      { "role": "agent", "text": "How has your weight and breathing been?" },
+      { "role": "patient", "text": "My weight is down two pounds but I feel more short of breath walking to the mailbox." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.8, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Weight loss is reassuring in CHF." },
+      "gpt": { "classification": "concerning", "confidence": 0.75, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "New exertional dyspnea is concerning regardless of weight trend." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": [] },
+    "notes": "Weight trend and symptom trend point in different directions."
+  },
+  {
+    "id": "CFL-03", "category": "conflicting_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op appendectomy, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "How is the incision and your appetite?" },
+      { "role": "patient", "text": "The incision looks perfect but I have no appetite at all and feel nauseous." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.82, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Wound healing well is the primary signal." },
+      "gpt": { "classification": "concerning", "confidence": 0.7, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "New nausea and anorexia could indicate an evolving intra-abdominal issue." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": [] },
+    "notes": "Wound looks fine but new GI symptoms conflict with that reassurance."
+  },
+  {
+    "id": "CFL-04", "category": "conflicting_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge after pneumonia, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How is your energy and cough?" },
+      { "role": "patient", "text": "Energy is much better but the cough is somehow worse than when I left the hospital." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.83, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Improved energy suggests overall recovery trend." },
+      "gpt": { "classification": "concerning", "confidence": 0.73, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Worsening cough after improvement can indicate a secondary process." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": [] },
+    "notes": "Energy and cough trends conflict."
+  },
+  {
+    "id": "CFL-05", "category": "conflicting_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op hip replacement, day 6.",
+    "transcript": [
+      { "role": "agent", "text": "How is your mobility and pain?" },
+      { "role": "patient", "text": "I'm walking further than yesterday but the pain is sharper than it's ever been." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.81, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Improved mobility is the more clinically weighted signal." },
+      "gpt": { "classification": "concerning", "confidence": 0.71, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "A new, sharper pain quality is a discordant finding worth reviewing." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": [] },
+    "notes": "Functional improvement conflicts with a new pain quality."
+  },
+  {
+    "id": "CFL-06", "category": "conflicting_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op C-section, day 6.",
+    "transcript": [
+      { "role": "agent", "text": "How is your incision and how are you feeling overall?" },
+      { "role": "patient", "text": "The incision looks totally fine but I've just been feeling really unwell in general the last day." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.8, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Local wound exam is reassuring." },
+      "gpt": { "classification": "concerning", "confidence": 0.74, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "General malaise beyond the wound itself warrants broader review, e.g. endometritis." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": [] },
+    "notes": "Reassuring local exam conflicts with systemic malaise report."
+  }
+]

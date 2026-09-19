@@ -1,0 +1,170 @@
+[
+  {
+    "id": "ROU-01", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op hip replacement, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How are you feeling since discharge?" },
+      { "role": "patient", "text": "Doing well, taking my pain medication as scheduled and walking with the walker like they told me." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.92, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Patient reports normal recovery, adherent to instructions." },
+      "gpt": { "classification": "routine", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "No concerning symptoms reported." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Baseline unremarkable recovery."
+  },
+  {
+    "id": "ROU-02", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op appendectomy, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "Any pain or issues with the incision site?" },
+      { "role": "patient", "text": "A little sore but nothing bad, and the incision looks clean and dry." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.88, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Mild expected soreness, wound clean." },
+      "gpt": { "classification": "routine", "confidence": 0.91, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "No infection signs." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Mild soreness within expected range."
+  },
+  {
+    "id": "ROU-03", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Heart failure discharge, week 1.",
+    "transcript": [
+      { "role": "agent", "text": "Have you been weighing yourself daily and taking your medications?" },
+      { "role": "patient", "text": "Yes, weight has been stable and I'm taking everything on schedule, feeling good." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Stable weight, medication adherence confirmed." },
+      "gpt": { "classification": "routine", "confidence": 0.87, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "No fluid retention signs." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Stable CHF follow-up."
+  },
+  {
+    "id": "ROU-04", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op knee replacement, day 7.",
+    "transcript": [
+      { "role": "agent", "text": "How is the physical therapy going?" },
+      { "role": "patient", "text": "Good, I can bend my knee more each day and pain is manageable with the tylenol." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.93, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Expected steady PT progress." },
+      "gpt": { "classification": "routine", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Pain well controlled." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Normal PT progress."
+  },
+  {
+    "id": "ROU-05", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Pneumonia discharge, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How is your breathing and energy level?" },
+      { "role": "patient", "text": "Breathing normally now, energy is coming back, finishing my antibiotics tomorrow." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.89, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Resolving pneumonia symptoms, completing antibiotics." },
+      "gpt": { "classification": "routine", "confidence": 0.86, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Improving respiratory status." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Resolving respiratory infection."
+  },
+  {
+    "id": "ROU-06", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op gallbladder removal, day 2.",
+    "transcript": [
+      { "role": "agent", "text": "Any nausea or trouble eating?" },
+      { "role": "patient", "text": "No nausea, I've been eating small meals fine and keeping everything down." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.91, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Tolerating oral intake well." },
+      "gpt": { "classification": "routine", "confidence": 0.88, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "No GI complications." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Uncomplicated cholecystectomy recovery."
+  },
+  {
+    "id": "ROU-07", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Diabetes management post-hospitalization.",
+    "transcript": [
+      { "role": "agent", "text": "How have your blood sugar readings been?" },
+      { "role": "patient", "text": "Staying in the range the doctor gave me, checking it twice a day like instructed." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Glucose within target range, adherent monitoring." },
+      "gpt": { "classification": "routine", "confidence": 0.92, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Good self-management." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Stable glycemic control."
+  },
+  {
+    "id": "ROU-08", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op cataract surgery, day 1.",
+    "transcript": [
+      { "role": "agent", "text": "How is your vision and any eye discomfort?" },
+      { "role": "patient", "text": "Vision is a bit blurry but they said that's normal, just mild scratchiness, using the drops." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.87, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Expected post-cataract symptoms." },
+      "gpt": { "classification": "routine", "confidence": 0.85, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Following drop regimen correctly." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Expected post-cataract course."
+  },
+  {
+    "id": "ROU-09", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op hernia repair, day 6.",
+    "transcript": [
+      { "role": "agent", "text": "Any swelling or issues at the repair site?" },
+      { "role": "patient", "text": "No swelling, just some tightness when I stand up, otherwise feeling normal." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Expected tightness, no swelling reported." },
+      "gpt": { "classification": "routine", "confidence": 0.88, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Uncomplicated healing." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Uncomplicated hernia repair recovery."
+  },
+  {
+    "id": "ROU-10", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-partum discharge, week 1.",
+    "transcript": [
+      { "role": "agent", "text": "How are you and the baby doing?" },
+      { "role": "patient", "text": "Both doing great, feeding is going well, I'm resting when the baby sleeps." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.93, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Normal postpartum course." },
+      "gpt": { "classification": "routine", "confidence": 0.91, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "No maternal or infant concerns reported." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Uncomplicated postpartum recovery."
+  },
+  {
+    "id": "ROU-11", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op rotator cuff repair, week 2.",
+    "transcript": [
+      { "role": "agent", "text": "How is the shoulder feeling in the sling?" },
+      { "role": "patient", "text": "Manageable, some stiffness but the pain meds are helping, following the sling schedule." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.89, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Expected post-op stiffness." },
+      "gpt": { "classification": "routine", "confidence": 0.87, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Adherent to sling protocol." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Expected shoulder recovery."
+  },
+  {
+    "id": "ROU-12", "category": "clear_routine", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "COPD exacerbation discharge, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How is your breathing compared to before you went to the hospital?" },
+      { "role": "patient", "text": "Much better than before, back to my normal baseline, using my inhalers as prescribed." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "routine", "confidence": 0.88, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Returned to respiratory baseline." },
+      "gpt": { "classification": "routine", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": false, "reasoning_summary": "Adherent to inhaler regimen." }
+    },
+    "expected": { "escalate": false, "min_priority": null, "expected_indicators": [] },
+    "notes": "Resolved COPD exacerbation."
+  }
+]

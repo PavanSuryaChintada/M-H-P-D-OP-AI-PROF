@@ -1,0 +1,116 @@
+[
+  {
+    "id": "INC-01", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op knee replacement, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "How is your pain level and are you able to walk?" },
+      { "role": "patient", "text": "I have to go, someone's at the door, bye." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["pain level", "mobility status"], "escalation_recommended": true, "reasoning_summary": "Call ended before any clinical information was gathered." },
+      "gpt": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["pain level", "mobility status"], "escalation_recommended": true, "reasoning_summary": "No assessment possible, call cut short." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Call ended before any real content was exchanged."
+  },
+  {
+    "id": "INC-02", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Heart failure discharge, week 1.",
+    "transcript": [
+      { "role": "agent", "text": "Have you been weighing yourself and taking medications?" },
+      { "role": "patient", "text": "My hearing aid isn't working right, what did you say?" },
+      { "role": "agent", "text": "I asked about your weight and medications." },
+      { "role": "patient", "text": "Sorry, I still can't hear you well, can you call back later?" }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.35, "indicators": [], "missing_information": ["weight trend", "medication adherence"], "escalation_recommended": true, "reasoning_summary": "Communication barrier prevented data collection in a high-risk patient." },
+      "gpt": { "classification": "uncertain", "confidence": 0.32, "indicators": [], "missing_information": ["weight trend", "medication adherence"], "escalation_recommended": true, "reasoning_summary": "No CHF status data obtained." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Hearing/communication barrier in a high-risk CHF patient."
+  },
+  {
+    "id": "INC-03", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op appendectomy, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How is your incision and any pain?" },
+      { "role": "patient", "text": "I don't want to talk about it right now, I'm busy." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["wound status", "pain level"], "escalation_recommended": true, "reasoning_summary": "Patient declined to answer clinical questions." },
+      "gpt": { "classification": "uncertain", "confidence": 0.28, "indicators": [], "missing_information": ["wound status"], "escalation_recommended": true, "reasoning_summary": "No clinical information obtained." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Patient unwilling to engage with follow-up questions."
+  },
+  {
+    "id": "INC-04", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge for pneumonia, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "How is your breathing and are you finishing your antibiotics?" },
+      { "role": "patient", "text": "The line is breaking up, I can barely hear you, hello?" }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["respiratory status", "medication adherence"], "escalation_recommended": true, "reasoning_summary": "Poor connection prevented any assessment of respiratory status." },
+      "gpt": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["respiratory status"], "escalation_recommended": true, "reasoning_summary": "Technical failure, no data obtained." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Poor call quality prevented respiratory assessment in a pneumonia patient."
+  },
+  {
+    "id": "INC-05", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op C-section, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How are you and the baby feeling?" },
+      { "role": "patient", "text": "The baby's crying, I really can't talk right now, sorry." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.32, "indicators": [], "missing_information": ["maternal status", "incision status"], "escalation_recommended": true, "reasoning_summary": "No maternal clinical status obtained." },
+      "gpt": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["maternal status"], "escalation_recommended": true, "reasoning_summary": "Call interrupted before assessment." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Interrupted before any postpartum status could be gathered."
+  },
+  {
+    "id": "INC-06", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op rotator cuff repair, week 1.",
+    "transcript": [
+      { "role": "agent", "text": "How is the shoulder feeling and are you following the sling schedule?" },
+      { "role": "patient", "text": "Um, uh, I think, I don't really remember what they told me to do." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.4, "indicators": [], "missing_information": ["sling compliance", "pain level"], "escalation_recommended": true, "reasoning_summary": "Patient confusion about instructions, no clinical data obtained." },
+      "gpt": { "classification": "uncertain", "confidence": 0.38, "indicators": [], "missing_information": ["sling compliance"], "escalation_recommended": true, "reasoning_summary": "Unable to confirm adherence or symptom status." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Patient doesn't recall discharge instructions, no status obtained."
+  },
+  {
+    "id": "INC-07", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge after diabetic ketoacidosis, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How have your blood sugar readings been?" },
+      { "role": "patient", "text": "Hold on, hold on, my phone is about to die—" }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["glucose readings"], "escalation_recommended": true, "reasoning_summary": "Call dropped before glucose data was obtained in a high-risk DKA patient." },
+      "gpt": { "classification": "uncertain", "confidence": 0.3, "indicators": [], "missing_information": ["glucose readings"], "escalation_recommended": true, "reasoning_summary": "No glycemic data, high-risk recent DKA history." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Dropped call in a recent DKA patient — high consequence of missing data."
+  },
+  {
+    "id": "INC-08", "category": "incomplete_information", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op bowel resection, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How is your pain and are you tolerating food?" },
+      { "role": "patient", "text": "Can you call my daughter instead, she handles all this, I don't know the details." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "uncertain", "confidence": 0.35, "indicators": [], "missing_information": ["pain level", "oral intake"], "escalation_recommended": true, "reasoning_summary": "Patient unable to self-report, no proxy available on this call." },
+      "gpt": { "classification": "uncertain", "confidence": 0.33, "indicators": [], "missing_information": ["pain level", "oral intake"], "escalation_recommended": true, "reasoning_summary": "No clinical data obtained, needs a callback with the caregiver." }
+    },
+    "expected": { "escalate": true, "min_priority": "MEDIUM", "expected_indicators": [] },
+    "notes": "Patient defers to an unavailable caregiver, no data obtained."
+  }
+]

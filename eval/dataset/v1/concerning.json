@@ -1,0 +1,142 @@
+[
+  {
+    "id": "CON-01", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op appendectomy, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How does the incision site look?" },
+      { "role": "patient", "text": "My wound is red and oozing a little bit today, wasn't like that yesterday." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.8, "indicators": [{ "indicator_id": "RF-WOUND", "description": "possible wound infection", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "red and oozing" }, "protocol_reference": { "chunk_id": "chunk-wound", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Signs consistent with early wound infection." },
+      "gpt": { "classification": "concerning", "confidence": 0.78, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Wound drainage warrants review." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-WOUND"] },
+    "notes": "Early infection signs, moderate severity."
+  },
+  {
+    "id": "CON-02", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge for viral illness, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "How has your temperature been?" },
+      { "role": "patient", "text": "I've been running a fever, it got to about 101 last night." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.79, "indicators": [{ "indicator_id": "RF-FEVER", "description": "persistent low-grade fever", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "running a fever" }, "protocol_reference": { "chunk_id": "chunk-fever", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Fever persisting past expected window." },
+      "gpt": { "classification": "concerning", "confidence": 0.75, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Fever should be reviewed." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-FEVER"] },
+    "notes": "Persistent fever, moderate severity."
+  },
+  {
+    "id": "CON-03", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op hip replacement, day 6.",
+    "transcript": [
+      { "role": "agent", "text": "Any new pain or swelling in your legs?" },
+      { "role": "patient", "text": "My calf is swollen and a bit warm on the same side as the surgery." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.82, "indicators": [{ "indicator_id": "RF-DVT", "description": "possible DVT", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "calf is swollen" }, "protocol_reference": { "chunk_id": "chunk-dvt", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Unilateral calf swelling post-op, DVT risk." },
+      "gpt": { "classification": "concerning", "confidence": 0.8, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Warrants clinical assessment for DVT." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-DVT"] },
+    "notes": "Classic DVT presentation scored moderate here for the concerning tier."
+  },
+  {
+    "id": "CON-04", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op C-section, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How does your incision look?" },
+      { "role": "patient", "text": "The incision looks infected, there's some pus coming from one spot." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.81, "indicators": [{ "indicator_id": "RF-WOUND", "description": "possible wound infection", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "pus coming from" }, "protocol_reference": { "chunk_id": "chunk-wound", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Purulent drainage indicates infection." },
+      "gpt": { "classification": "concerning", "confidence": 0.83, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Needs wound check." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-WOUND"] },
+    "notes": "Surgical site infection, moderate."
+  },
+  {
+    "id": "CON-05", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Heart failure discharge, week 2.",
+    "transcript": [
+      { "role": "agent", "text": "How has your temperature and general feeling been?" },
+      { "role": "patient", "text": "My temperature is 102 today and I feel pretty worn out." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.77, "indicators": [{ "indicator_id": "RF-FEVER", "description": "fever in CHF patient", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "temperature is 102" }, "protocol_reference": { "chunk_id": "chunk-fever", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Fever in a CHF patient warrants review." },
+      "gpt": { "classification": "concerning", "confidence": 0.74, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "New fever, monitor closely." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-FEVER"] },
+    "notes": "Fever in a comorbid patient."
+  },
+  {
+    "id": "CON-06", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op knee replacement, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How's the knee looking today?" },
+      { "role": "patient", "text": "The incision looks a bit red and oozing around the staples." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.78, "indicators": [{ "indicator_id": "RF-WOUND", "description": "possible wound infection", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "red and oozing" }, "protocol_reference": { "chunk_id": "chunk-wound", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Possible surgical site infection." },
+      "gpt": { "classification": "concerning", "confidence": 0.76, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Wound changes need review." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-WOUND"] },
+    "notes": "Post-arthroplasty wound concern."
+  },
+  {
+    "id": "CON-07", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge after cellulitis treatment, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "How is the affected area on your leg?" },
+      { "role": "patient", "text": "Still running a fever off and on, about 101 this morning." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.8, "indicators": [{ "indicator_id": "RF-FEVER", "description": "recurrent fever", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "running a fever" }, "protocol_reference": { "chunk_id": "chunk-fever", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Recurrent fever suggests incomplete resolution." },
+      "gpt": { "classification": "concerning", "confidence": 0.79, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Cellulitis may not be resolving." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-FEVER"] },
+    "notes": "Possible treatment failure signal."
+  },
+  {
+    "id": "CON-08", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op bowel resection, day 6.",
+    "transcript": [
+      { "role": "agent", "text": "How does the incision look today?" },
+      { "role": "patient", "text": "There's some pus coming from the bottom of the incision now." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.82, "indicators": [{ "indicator_id": "RF-WOUND", "description": "possible wound infection", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "pus coming from" }, "protocol_reference": { "chunk_id": "chunk-wound", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Purulent drainage, likely infection." },
+      "gpt": { "classification": "concerning", "confidence": 0.8, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Needs in-person wound check." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-WOUND"] },
+    "notes": "Post-laparotomy wound infection sign."
+  },
+  {
+    "id": "CON-09", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op ACL repair, week 2.",
+    "transcript": [
+      { "role": "agent", "text": "Any swelling in the leg?" },
+      { "role": "patient", "text": "My calf pain and swelling has gotten worse over the last two days." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.79, "indicators": [{ "indicator_id": "RF-DVT", "description": "possible DVT", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "calf pain and swelling" }, "protocol_reference": { "chunk_id": "chunk-dvt", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Worsening calf symptoms, DVT risk." },
+      "gpt": { "classification": "concerning", "confidence": 0.77, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Needs clinical evaluation." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-DVT"] },
+    "notes": "Worsening trend over two days."
+  },
+  {
+    "id": "CON-10", "category": "clear_concerning", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge after UTI treatment, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "Any fever or new symptoms?" },
+      { "role": "patient", "text": "I still have a fever of 101, thought the antibiotics would have fixed it by now." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "concerning", "confidence": 0.78, "indicators": [{ "indicator_id": "RF-FEVER", "description": "persistent fever on antibiotics", "severity": "moderate", "evidence": { "turn_index": 1, "excerpt": "fever of 101" }, "protocol_reference": { "chunk_id": "chunk-fever", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Fever not resolving on treatment." },
+      "gpt": { "classification": "concerning", "confidence": 0.76, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Possible antibiotic failure or resistant infection." }
+    },
+    "expected": { "escalate": true, "min_priority": "LOW", "expected_indicators": ["RF-FEVER"] },
+    "notes": "Antibiotic non-response signal."
+  }
+]

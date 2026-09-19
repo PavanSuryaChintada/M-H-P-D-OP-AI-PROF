@@ -1,0 +1,142 @@
+[
+  {
+    "id": "URG-01", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op hip replacement, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "Any new symptoms today?" },
+      { "role": "patient", "text": "I've had chest pain for the last hour and it's getting worse." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.95, "indicators": [{ "indicator_id": "RF-CHEST", "description": "chest pain", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "chest pain" }, "protocol_reference": { "chunk_id": "chunk-chest", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "escalation_reason": "chest pain", "reasoning_summary": "Acute chest pain post-op, emergency concern." },
+      "gpt": { "classification": "urgent", "confidence": 0.94, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Chest pain requires immediate evaluation." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CHEST"] },
+    "notes": "Classic emergency presentation."
+  },
+  {
+    "id": "URG-02", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op abdominal surgery, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "How is your breathing?" },
+      { "role": "patient", "text": "I can't breathe properly, it's been getting worse since this morning." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.96, "indicators": [{ "indicator_id": "RF-BREATH", "description": "shortness of breath", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "can't breathe" }, "protocol_reference": { "chunk_id": "chunk-breath", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Acute dyspnea, possible PE risk post-op." },
+      "gpt": { "classification": "urgent", "confidence": 0.93, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Respiratory distress, emergency." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-BREATH"] },
+    "notes": "Post-op respiratory distress."
+  },
+  {
+    "id": "URG-03", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Elderly patient, UTI discharge.",
+    "transcript": [
+      { "role": "agent", "text": "How are you feeling today?" },
+      { "role": "patient", "text": "My daughter says I've been very disoriented and confused since last night." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.9, "indicators": [{ "indicator_id": "RF-CONFUSION", "description": "acute confusion", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "very disoriented" }, "protocol_reference": { "chunk_id": "chunk-confusion", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "New confusion in elderly patient, possible sepsis or delirium." },
+      "gpt": { "classification": "urgent", "confidence": 0.91, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Acute mental status change is a red flag." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CONFUSION"] },
+    "notes": "New-onset confusion in elderly patient."
+  },
+  {
+    "id": "URG-04", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op cardiac catheterization, day 1.",
+    "transcript": [
+      { "role": "agent", "text": "Any chest discomfort or other symptoms?" },
+      { "role": "patient", "text": "There's pressure in my chest that started 20 minutes ago and won't go away." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.97, "indicators": [{ "indicator_id": "RF-CHEST", "description": "chest pain", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "pressure in my chest" }, "protocol_reference": { "chunk_id": "chunk-chest", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "New chest pressure post-cath, cardiac emergency risk." },
+      "gpt": { "classification": "urgent", "confidence": 0.95, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Cardiac emergency until ruled out." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CHEST"] },
+    "notes": "High-risk cardiac post-op population."
+  },
+  {
+    "id": "URG-05", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op lung surgery, day 2.",
+    "transcript": [
+      { "role": "agent", "text": "How is your breathing since the surgery?" },
+      { "role": "patient", "text": "I'm having a lot of trouble breathing, much worse than yesterday." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.94, "indicators": [{ "indicator_id": "RF-BREATH", "description": "shortness of breath", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "trouble breathing" }, "protocol_reference": { "chunk_id": "chunk-breath", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Worsening dyspnea after thoracic surgery." },
+      "gpt": { "classification": "urgent", "confidence": 0.92, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Post-thoracotomy respiratory decline, urgent." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-BREATH"] },
+    "notes": "Post-thoracic surgery respiratory decline."
+  },
+  {
+    "id": "URG-06", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Discharge after mild stroke, week 1.",
+    "transcript": [
+      { "role": "agent", "text": "How has your thinking and memory been?" },
+      { "role": "patient", "text": "I've been confused and can't think straight since this morning, it's new." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.93, "indicators": [{ "indicator_id": "RF-CONFUSION", "description": "acute confusion", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "confused and can't think straight" }, "protocol_reference": { "chunk_id": "chunk-confusion", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "New confusion in recent stroke patient, possible recurrence." },
+      "gpt": { "classification": "urgent", "confidence": 0.9, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Possible stroke recurrence, emergency." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CONFUSION"] },
+    "notes": "Possible stroke recurrence."
+  },
+  {
+    "id": "URG-07", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op bariatric surgery, day 4.",
+    "transcript": [
+      { "role": "agent", "text": "How are you feeling?" },
+      { "role": "patient", "text": "My chest hurts really bad and I feel short of breath too." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.96, "indicators": [{ "indicator_id": "RF-CHEST", "description": "chest pain", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "chest hurts really bad" }, "protocol_reference": { "chunk_id": "chunk-chest", "protocol_id": "eval-protocol-v1", "version": "1" } }, { "indicator_id": "RF-BREATH", "description": "shortness of breath", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "short of breath" }, "protocol_reference": { "chunk_id": "chunk-breath", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Chest pain plus dyspnea, high PE risk post-bariatric." },
+      "gpt": { "classification": "urgent", "confidence": 0.95, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "PE risk, emergency evaluation needed." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CHEST", "RF-BREATH"] },
+    "notes": "Combined chest pain and dyspnea, PE-pattern."
+  },
+  {
+    "id": "URG-08", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op colon resection, day 5.",
+    "transcript": [
+      { "role": "agent", "text": "How are you feeling today?" },
+      { "role": "patient", "text": "My family says I seem very disoriented, I don't really remember this morning." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.89, "indicators": [{ "indicator_id": "RF-CONFUSION", "description": "acute confusion", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "very disoriented" }, "protocol_reference": { "chunk_id": "chunk-confusion", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Acute confusion post-op, possible sepsis." },
+      "gpt": { "classification": "urgent", "confidence": 0.88, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Rule out post-op sepsis or delirium." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CONFUSION"] },
+    "notes": "Possible post-op sepsis presenting as delirium."
+  },
+  {
+    "id": "URG-09", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op vascular surgery, day 3.",
+    "transcript": [
+      { "role": "agent", "text": "Any chest pain or breathing issues?" },
+      { "role": "patient", "text": "I've had shortness of breath since this afternoon, out of nowhere." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.93, "indicators": [{ "indicator_id": "RF-BREATH", "description": "shortness of breath", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "shortness of breath" }, "protocol_reference": { "chunk_id": "chunk-breath", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Sudden dyspnea, high vascular surgery PE risk." },
+      "gpt": { "classification": "urgent", "confidence": 0.91, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Acute onset dyspnea, urgent evaluation." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-BREATH"] },
+    "notes": "Sudden-onset dyspnea, high-risk population."
+  },
+  {
+    "id": "URG-10", "category": "clear_urgent", "hospital_id": "eval-hospital-1", "protocol_id": "eval-protocol-v1",
+    "patient_context": "Post-op CABG, day 6.",
+    "transcript": [
+      { "role": "agent", "text": "How has your recovery been today?" },
+      { "role": "patient", "text": "I have chest pain that's spreading to my arm, started half an hour ago." }
+    ],
+    "mock_assessors": {
+      "claude": { "classification": "urgent", "confidence": 0.98, "indicators": [{ "indicator_id": "RF-CHEST", "description": "chest pain", "severity": "high", "evidence": { "turn_index": 1, "excerpt": "chest pain" }, "protocol_reference": { "chunk_id": "chunk-chest", "protocol_id": "eval-protocol-v1", "version": "1" } }], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Classic MI presentation post-CABG, emergency." },
+      "gpt": { "classification": "urgent", "confidence": 0.97, "indicators": [], "missing_information": [], "escalation_recommended": true, "reasoning_summary": "Call emergency services immediately." }
+    },
+    "expected": { "escalate": true, "min_priority": "HIGH", "expected_indicators": ["RF-CHEST"] },
+    "notes": "Classic MI presentation."
+  }
+]

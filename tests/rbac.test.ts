@@ -29,7 +29,7 @@ vi.mock("../lib/supabase/server", () => ({
 // writing it below keeps the intent readable.
 const { guard, guardPlatformAdmin } = await import("../lib/auth/guard");
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "prefer" });
 
 let hospitalA: { id: string };
 let hospitalB: { id: string };

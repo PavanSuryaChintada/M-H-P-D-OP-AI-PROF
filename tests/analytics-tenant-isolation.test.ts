@@ -13,7 +13,7 @@ import { getHospitalOverview, getEscalationCounts, getManualFollowUpBacklogCount
 import { createEscalation } from "../lib/db/repositories/escalations";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "prefer" });
 
 let hospitalA: { id: string };
 let hospitalB: { id: string };

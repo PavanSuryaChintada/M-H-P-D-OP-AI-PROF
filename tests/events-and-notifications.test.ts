@@ -14,7 +14,7 @@ import { startEscalationNotificationChain, handleEscalationTimeoutCheck } from "
 import { processNextEvent } from "../lib/events/dispatcher";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "prefer" });
 
 let hospital: { id: string };
 let primaryReviewerId: string;

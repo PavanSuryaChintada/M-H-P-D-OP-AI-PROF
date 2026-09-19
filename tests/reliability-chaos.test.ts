@@ -17,7 +17,7 @@ import { recordCallOutcome } from "../lib/queue/record-outcome";
 import { reapExpiredLeases, getTaskById, transitionTaskState } from "../lib/db/repositories/outreach-tasks";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "prefer" });
 
 const TASK_COUNT = 50;
 const FAILURE_RATE = 0.3; // half of injected failures are call failures, half simulated worker crashes

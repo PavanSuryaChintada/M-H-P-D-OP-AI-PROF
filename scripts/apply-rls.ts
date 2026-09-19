@@ -27,7 +27,7 @@ const template = readFileSync(sqlPath, "utf-8");
 const statement = template.replace("CHANGE_ME", appUserPassword);
 
 async function main() {
-  const sql = postgres(databaseUrl!, { max: 1, ssl: "require" });
+  const sql = postgres(databaseUrl!, { max: 1, ssl: "prefer" });
   try {
     await sql.unsafe(statement);
     console.log("lib/db/rls.sql applied successfully.");

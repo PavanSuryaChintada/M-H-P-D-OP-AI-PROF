@@ -23,7 +23,7 @@ const TASK_COUNT = 60; // more tasks than capacity, so claims are never starved 
 // max: 8 — this project's Supavisor session pooler caps at pool_size 15;
 // the app's own `db` client (a separate, transaction-mode pool) is what
 // the 50 concurrent claimNextTask calls actually exercise, not this one.
-const admin = postgres(process.env.DATABASE_URL!, { max: 8, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 8, prepare: false, ssl: "prefer" });
 
 let hospital: { id: string };
 let campaignId: string;

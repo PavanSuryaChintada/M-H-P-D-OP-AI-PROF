@@ -17,7 +17,7 @@ import { evaluatePatientForCampaign } from "../lib/campaigns/evaluate";
 import { ingestDischargeRecord } from "../lib/discharge/ingest";
 import type { TenantContext } from "../lib/db/tenant";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 1, prepare: false, ssl: "prefer" });
 
 let hospital: { id: string };
 let actor: { id: string };

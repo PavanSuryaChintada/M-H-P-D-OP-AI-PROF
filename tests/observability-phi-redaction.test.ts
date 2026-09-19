@@ -17,7 +17,7 @@ import type { TenantContext } from "../lib/db/tenant";
 import type { FollowUpQuestion } from "../lib/protocols/schema";
 import type { RedFlag } from "../lib/ai/assessors/rule-engine";
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "prefer" });
 
 const SEED_FIRST_NAME = "Priyaverakshita"; // deliberately distinctive — cannot coincidentally appear in any other log text
 const SEED_LAST_NAME = "Thennarasukumar";

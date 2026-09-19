@@ -15,7 +15,7 @@ import type { outreachTasks } from "../lib/db/schema";
 
 type Task = typeof outreachTasks.$inferSelect;
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "prefer" });
 
 let hospital: { id: string };
 let campaignId: string;

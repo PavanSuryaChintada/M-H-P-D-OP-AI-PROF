@@ -31,7 +31,7 @@ const ALWAYS_OPEN_CONFIG = HospitalConfigSchema.parse({
   ehrSettings: { mode: "mock", failureRate: 0 },
 });
 
-const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "require" });
+const admin = postgres(process.env.DATABASE_URL!, { max: 5, prepare: false, ssl: "prefer" });
 
 let hospital: { id: string };
 let campaignId: string;

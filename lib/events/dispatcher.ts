@@ -1,8 +1,22 @@
 // Doc 16 R1/R4 — the polling dispatcher. Claims one event (SKIP LOCKED),
 // runs its handler outside the claiming transaction, then records the
-// outcome. An unknown event type or a handler throw both count as a
-// failure toward max_attempts rather than crashing the poller — one bad
-// event must never stop the rest of the queue from draining.
+// outcome. A handler throw counts as a failure toward max_attempts rather
+// than crashing the poller — one bad event must never stop the rest of the
+// queue from draining.
+//
+// A *missing* handler is deliberately NOT the same thing as a failure.
+// registry.ts's own comment states the catalogue is intentionally wider
+// than the handlers built so far ("typed and reserved... without this
+// build having to write a handler for every one in six days") - treating
+// that as a failure meant every patient.imported/discharge.ingested/
+// campaign.* event (all real, already-emitted types with no handler)
+// retried itself into a burst of error logs before finally going DEAD,
+// for every single such event ever emitted. Found running this for real
+// against a live backlog on Railway: the "error" logs were pure noise,
+// nothing was actually broken. An unhandled type is acknowledged and
+// cleared immediately instead - there's nothing to usefully retry into
+// existence, and this list only grows as future docs add event types
+// before their handlers land.
 
 import { claimNextEvent, markEventDone, markEventFailed } from "../db/repositories/events";
 import { EVENT_HANDLERS, type EventType } from "./registry";
@@ -22,8 +36,13 @@ export async function processNextEvent(hospitalId: string): Promise<ProcessEvent
     if (!claimed) return { processed: false };
 
     const handler = EVENT_HANDLERS[claimed.type as EventType];
+    if (!handler) {
+      await markEventDone(hospitalId, claimed.id);
+      log("debug", "event.no_handler", { hospitalId, eventId: claimed.id, type: claimed.type });
+      return { processed: true, eventId: claimed.id, type: claimed.type };
+    }
+
     try {
-      if (!handler) throw new Error(`no handler registered for event type "${claimed.type}"`);
       await handler(hospitalId, claimed.payload as never);
       await markEventDone(hospitalId, claimed.id);
       log("info", "event.processed", { hospitalId, eventId: claimed.id, type: claimed.type });

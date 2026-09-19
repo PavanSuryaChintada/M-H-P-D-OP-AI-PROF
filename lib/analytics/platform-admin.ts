@@ -11,7 +11,7 @@
 // from a hospital the caller didn't explicitly scope into.
 
 import { sql } from "drizzle-orm";
-import { withHospitalContext } from "../db/tenant";
+import { withHospitalContext, type Tx } from "../db/tenant";
 import { listHospitals } from "../db/repositories/hospitals";
 
 export interface HospitalActivity {
@@ -24,52 +24,35 @@ export interface HospitalActivity {
   stuckTaskCount: number; // CALLING/CONNECTED past lease_expires_at — the reaper should have caught these
 }
 
-async function getOneHospitalActivity(hospitalId: string, hospitalName: string): Promise<HospitalActivity> {
-  return withHospitalContext(hospitalId, async (tx) => {
-    const [row] = await tx.execute<{
-      campaign_count: string;
-      active_calls: number;
-      max_calls: number;
-      dead_letter_count: string;
-      stuck_count: string;
-    }>(sql`
-      select
-        (select count(*) from campaigns where hospital_id = ${hospitalId}) as campaign_count,
-        coalesce((select current_active_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as active_calls,
-        coalesce((select max_concurrent_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as max_calls,
-        (select count(*) from events where hospital_id = ${hospitalId} and status = 'DEAD') as dead_letter_count,
-        (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state in ('CALLING','CONNECTED') and lease_expires_at < now()) as stuck_count
-    `);
-    return {
-      hospitalId,
-      hospitalName,
-      campaignCount: Number(row.campaign_count),
-      activeCalls: row.active_calls,
-      maxConcurrentCalls: row.max_calls,
-      deadLetterEventCount: Number(row.dead_letter_count),
-      stuckTaskCount: Number(row.stuck_count),
-    };
-  });
+async function getOneHospitalActivity(hospitalId: string, hospitalName: string, tx: Tx): Promise<HospitalActivity> {
+  const [row] = await tx.execute<{
+    campaign_count: string;
+    active_calls: number;
+    max_calls: number;
+    dead_letter_count: string;
+    stuck_count: string;
+  }>(sql`
+    select
+      (select count(*) from campaigns where hospital_id = ${hospitalId}) as campaign_count,
+      coalesce((select current_active_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as active_calls,
+      coalesce((select max_concurrent_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as max_calls,
+      (select count(*) from events where hospital_id = ${hospitalId} and status = 'DEAD') as dead_letter_count,
+      (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state in ('CALLING','CONNECTED') and lease_expires_at < now()) as stuck_count
+  `);
+  return {
+    hospitalId,
+    hospitalName,
+    campaignCount: Number(row.campaign_count),
+    activeCalls: row.active_calls,
+    maxConcurrentCalls: row.max_calls,
+    deadLetterEventCount: Number(row.dead_letter_count),
+    stuckTaskCount: Number(row.stuck_count),
+  };
 }
 
 export interface PlatformOverview {
   perHospital: HospitalActivity[];
   totals: { campaignCount: number; activeCalls: number; deadLetterEventCount: number; stuckTaskCount: number };
-}
-
-export async function getPlatformOverview(): Promise<PlatformOverview> {
-  const hospitals = await listHospitals();
-  const perHospital = await Promise.all(hospitals.map((h) => getOneHospitalActivity(h.id, h.name)));
-  const totals = perHospital.reduce(
-    (acc, h) => ({
-      campaignCount: acc.campaignCount + h.campaignCount,
-      activeCalls: acc.activeCalls + h.activeCalls,
-      deadLetterEventCount: acc.deadLetterEventCount + h.deadLetterEventCount,
-      stuckTaskCount: acc.stuckTaskCount + h.stuckTaskCount,
-    }),
-    { campaignCount: 0, activeCalls: 0, deadLetterEventCount: 0, stuckTaskCount: 0 },
-  );
-  return { perHospital, totals };
 }
 
 export interface AiUsageStat {
@@ -81,45 +64,70 @@ export interface AiUsageStat {
   validationFailureRate: number;
 }
 
-async function getOneHospitalAiUsage(hospitalId: string): Promise<AiUsageStat[]> {
-  return withHospitalContext(hospitalId, async (tx) => {
-    const rows = await tx.execute<{
-      agent: string;
-      call_count: string;
-      total_tokens: string;
-      total_cost: string | null;
-      p95_latency: string | null;
-      failed_count: string;
-    }>(sql`
-      select
-        agent,
-        count(*) as call_count,
-        coalesce(sum(coalesce(token_input,0) + coalesce(token_output,0)), 0) as total_tokens,
-        coalesce(sum(estimated_cost_usd), 0) as total_cost,
-        percentile_cont(0.95) within group (order by latency_ms) as p95_latency,
-        count(*) filter (where validation_outcome = 'failed') as failed_count
-      from ai_usage
-      where hospital_id = ${hospitalId}
-      group by agent
-    `);
-    return rows.map((r) => ({
-      agent: r.agent,
-      callCount: Number(r.call_count),
-      totalTokens: Number(r.total_tokens),
-      estimatedCostUsd: Number(r.total_cost ?? 0),
-      p95LatencyMs: r.p95_latency !== null ? Number(r.p95_latency) : null,
-      validationFailureRate: Number(r.call_count) > 0 ? Number(r.failed_count) / Number(r.call_count) : 0,
-    }));
-  });
+async function getOneHospitalAiUsage(hospitalId: string, tx: Tx): Promise<AiUsageStat[]> {
+  const rows = await tx.execute<{
+    agent: string;
+    call_count: string;
+    total_tokens: string;
+    total_cost: string | null;
+    p95_latency: string | null;
+    failed_count: string;
+  }>(sql`
+    select
+      agent,
+      count(*) as call_count,
+      coalesce(sum(coalesce(token_input,0) + coalesce(token_output,0)), 0) as total_tokens,
+      coalesce(sum(estimated_cost_usd), 0) as total_cost,
+      percentile_cont(0.95) within group (order by latency_ms) as p95_latency,
+      count(*) filter (where validation_outcome = 'failed') as failed_count
+    from ai_usage
+    where hospital_id = ${hospitalId}
+    group by agent
+  `);
+  return rows.map((r) => ({
+    agent: r.agent,
+    callCount: Number(r.call_count),
+    totalTokens: Number(r.total_tokens),
+    estimatedCostUsd: Number(r.total_cost ?? 0),
+    p95LatencyMs: r.p95_latency !== null ? Number(r.p95_latency) : null,
+    validationFailureRate: Number(r.call_count) > 0 ? Number(r.failed_count) / Number(r.call_count) : 0,
+  }));
 }
 
-/** R3 — "AI usage: calls, tokens, estimated cost, p95 latency by agent, validation failure rate," summed across every hospital (still no cross-hospital query — same per-hospital-loop pattern as getPlatformOverview). */
-export async function getPlatformAiUsage(): Promise<AiUsageStat[]> {
+/**
+ * R3's overview and AI-usage numbers used to be two separate per-hospital
+ * loops (getPlatformOverview + getPlatformAiUsage), each opening its own
+ * withHospitalContext transaction per hospital - 2 full transactions
+ * (BEGIN/set_config/query/COMMIT each) per hospital, 64 for 32 hospitals.
+ * Measured live: ~13-19s for the combined dashboard call. Folding both
+ * queries into the SAME transaction per hospital halves the transaction
+ * count; still no unscoped cross-hospital query (R3's own requirement),
+ * just one round trip's worth of transaction overhead instead of two.
+ */
+export async function getPlatformStats(): Promise<{ overview: PlatformOverview; aiUsage: AiUsageStat[] }> {
   const hospitals = await listHospitals();
-  const perHospital = await Promise.all(hospitals.map((h) => getOneHospitalAiUsage(h.id)));
+  const perHospital = await Promise.all(
+    hospitals.map((h) =>
+      withHospitalContext(h.id, async (tx) => ({
+        activity: await getOneHospitalActivity(h.id, h.name, tx),
+        aiUsage: await getOneHospitalAiUsage(h.id, tx),
+      })),
+    ),
+  );
+
+  const totals = perHospital.reduce(
+    (acc, { activity }) => ({
+      campaignCount: acc.campaignCount + activity.campaignCount,
+      activeCalls: acc.activeCalls + activity.activeCalls,
+      deadLetterEventCount: acc.deadLetterEventCount + activity.deadLetterEventCount,
+      stuckTaskCount: acc.stuckTaskCount + activity.stuckTaskCount,
+    }),
+    { campaignCount: 0, activeCalls: 0, deadLetterEventCount: 0, stuckTaskCount: 0 },
+  );
+
   const byAgent = new Map<string, AiUsageStat>();
-  for (const stats of perHospital) {
-    for (const s of stats) {
+  for (const { aiUsage } of perHospital) {
+    for (const s of aiUsage) {
       const existing = byAgent.get(s.agent);
       if (!existing) {
         byAgent.set(s.agent, { ...s });
@@ -142,5 +150,9 @@ export async function getPlatformAiUsage(): Promise<AiUsageStat[]> {
       existing.callCount = combinedCalls;
     }
   }
-  return Array.from(byAgent.values());
+
+  return {
+    overview: { perHospital: perHospital.map((h) => h.activity), totals },
+    aiUsage: Array.from(byAgent.values()),
+  };
 }

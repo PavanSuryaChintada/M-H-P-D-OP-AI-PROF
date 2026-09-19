@@ -6,7 +6,7 @@ Doc 01's own rule, restated in doc 13's comments: "Platform Admin cross-hospital
 
 **Known scaling limit, deliberately not solved here**: this means the Platform Admin dashboard issues one DB round trip per hospital per widget. Fine for a demo with a handful of hospitals; a real deployment with hundreds would need a periodically-refreshed cross-hospital reporting table instead. Out of scope for a 6-day build.
 
-**p95 latency across hospitals is approximated, not exact.** `getPlatformAiUsage` combines each hospital's own `percentile_cont(0.95)` result via `max()` across hospitals rather than recomputing a true p95 over the pooled raw samples (which would require pulling every raw latency value out of RLS-scoped queries and merging them outside the database). Documented as an approximation in the code — it's conservative (never understates the tail) rather than falsely precise.
+**p95 latency across hospitals is approximated, not exact.** `getPlatformStats` combines each hospital's own `percentile_cont(0.95)` result via `max()` across hospitals rather than recomputing a true p95 over the pooled raw samples (which would require pulling every raw latency value out of RLS-scoped queries and merging them outside the database). Documented as an approximation in the code — it's conservative (never understates the tail) rather than falsely precise.
 
 ## Reused rather than rebuilt
 

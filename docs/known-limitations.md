@@ -1,8 +1,8 @@
-# Known Limitations & Tradeoffs (Doc 24 item 9 / Doc 25)
+# Known Limitations & Tradeoffs
 
 Each item: **what was simplified · why · what production would require.**
 
-## From the original cut list (doc 00 §4)
+## From the original cut list
 
 - **Real telephony → deterministic scripted simulator.** PRD §14 explicitly permits this. Production would require a Twilio (or equivalent) integration behind the same `PatientResponder` interface the simulator already implements — `prd-specs/10-OPT-real-telephony.md` specs this out but it was not built; the interface boundary exists specifically so that swap doesn't touch the conversation state machine, detectors, or anything downstream of it.
 - **Streaming voice, barge-in, ASR tuning → not built at all.** These require a real telephony leg to exist first (above). Production would require a streaming ASR/TTS pipeline and a conversation loop that can be interrupted mid-turn, which the current turn-based state machine doesn't model.

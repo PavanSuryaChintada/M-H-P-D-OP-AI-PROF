@@ -1,4 +1,4 @@
-# Architecture (Doc 24)
+# Architecture
 
 ## System diagram
 

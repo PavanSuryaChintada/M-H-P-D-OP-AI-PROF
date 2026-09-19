@@ -1,8 +1,8 @@
-# AI Architecture, Tool Gateway & Provider Abstraction (Doc 09)
+# AI Architecture, Tool Gateway & Provider Abstraction
 
-## Agent split (PRD §13)
+## Agent split
 
-Six agents, none of them a mega-agent: `voice_intake`, `clinical_triage`, `second_assessor`, `rule_engine`, `escalation_consensus`, `documentation`. `rule_engine` is deterministic code, not an LLM call — it exists as an `AgentName` for the tool allowlist system even though it never calls a provider. The rule engine as third voter (doc 13) is the differentiator PRD §13 calls out explicitly: two LLMs agreeing is weak evidence since they share failure modes; a deterministic protocol matcher fails independently, so disagreement between it and the LLMs is informative in a way LLM-vs-LLM disagreement isn't.
+Six agents, none of them a mega-agent: `voice_intake`, `clinical_triage`, `second_assessor`, `rule_engine`, `escalation_consensus`, `documentation`. `rule_engine` is deterministic code, not an LLM call — it exists as an `AgentName` for the tool allowlist system even though it never calls a provider. The rule engine as third voter is the differentiator the assignment brief calls out explicitly: two LLMs agreeing is weak evidence since they share failure modes; a deterministic protocol matcher fails independently, so disagreement between it and the LLMs is informative in a way LLM-vs-LLM disagreement isn't.
 
 ## The controlled tool gateway (`lib/ai/tools/registry.ts`)
 

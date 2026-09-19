@@ -2,7 +2,11 @@
 
 AI-powered patient follow-up, clinical triage, and hospital outreach operations platform.
 
-**Deployed URL:** not yet deployed — see `docs/deployment.md` for the exact steps (Vercel account + Railway account + Supabase project, all under your own accounts; nothing here can create those on your behalf).
+**Deployed URL:** https://m-h-p-d-op-ai-prof.vercel.app/ — see `docs/deployment.md` for how this is hosted (Vercel + Railway + Supabase).
+
+## Documentation
+
+The written deliverables (architecture, queue design, safety evaluation, AI usage, known limitations, and the rest) live in [`docs/`](docs/). Start with `docs/architecture.md` for the system overview.
 
 ## Architecture
 
@@ -34,7 +38,7 @@ Seeded via `npm run seed:demo-users` (needs `SUPABASE_SERVICE_ROLE_KEY` in `.env
 | Campaign Manager | `campaign-manager@demo.mhpd.local` | `Demo1234!` |
 | Clinical Reviewer | `clinical-reviewer@demo.mhpd.local` | `Demo1234!` |
 
-Hospital Admin, Campaign Manager and Clinical Reviewer are all scoped to the seeded "Demo General Hospital"; Platform Admin is not hospital-scoped (PRD §3).
+Hospital Admin, Campaign Manager and Clinical Reviewer are all scoped to the seeded "Demo General Hospital"; Platform Admin is not hospital-scoped.
 
 These are prototype-only demo accounts on a non-production Supabase project — not real patient data, not a production credential.
 
@@ -53,29 +57,25 @@ These are prototype-only demo accounts on a non-production Supabase project — 
 | Command | What it does |
 |---|---|
 | `npm run seed:demo` | Full demo dataset: migrate + RLS + hospitals + users + protocols + patients, in one shot |
-| `npm run sim` | Doc 08's queue simulation — claim/call/retry/reap end to end against real fixtures |
-| `npm run eval:safety` | Doc 21's safety evaluation harness — 60 cases, prints the false-negative rate |
+| `npm run sim` | Queue simulation — claim/call/retry/reap end to end against real fixtures |
+| `npm run eval:safety` | Safety evaluation harness — 60 cases, prints the false-negative rate |
 | `npm run demo:reset` | Truncates operational data and re-seeds fresh demo patients (see `docs/deployment.md`) |
 | `npm run worker` | Runs the always-on worker locally (`worker/index.ts`) — what Railway runs in production |
 
 ### Known limitations
 
-See `docs/known-limitations.md` for the full list (what was simplified, why, what production would require), plus `docs/testing.md` ("Tier 3 — nice, deliberately not done") for testing-specific gaps, per PRD §34's own instruction to cut and say so rather than claim more than was built.
-
-## Demo video
-
-Not recorded — see `docs/known-limitations.md`. When recorded, the unlisted link goes here.
+See `docs/known-limitations.md` for the full list (what was simplified, why, what production would require), plus `docs/testing.md` ("Tier 3 — nice, deliberately not done") for testing-specific gaps. Cutting scope and saying so beats quietly claiming more than was built.
 
 ## Testing
 
-See `docs/testing.md` for what's covered, by which test, and what's deliberately not tested. Latest full run (all Tier 1/2 requirements from doc 22):
+See `docs/testing.md` for what's covered, by which test, and what's deliberately not tested. Latest full run:
 
 ```
 Test Files  41 passed (41)
      Tests  225 passed (225)
 ```
 
-Safety evaluation harness (doc 21) — `npm run eval:safety`: 60 cases, 0.00% false-negative rate, all 6 adversarial (prompt-injection) cases unaffected. Full report in `docs/safety-evaluation.md`.
+Safety evaluation harness — `npm run eval:safety`: 60 cases, 0.00% false-negative rate, all 6 adversarial (prompt-injection) cases unaffected. Full report in `docs/safety-evaluation.md`.
 
 ---
 

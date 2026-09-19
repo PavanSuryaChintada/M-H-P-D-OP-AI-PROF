@@ -1,6 +1,6 @@
-# Queue Design — Docs 06/07/08
+# Queue Design
 
-This document covers the priority algorithm and concurrency control (doc 06). It will be extended with states/retries/callbacks (doc 07) and the mandatory simulation (doc 08).
+Covers the priority algorithm, concurrency control, states/retries/callbacks, and the queue simulation used to demonstrate all of it under constrained capacity.
 
 ## Priority — tiered first, scored second
 

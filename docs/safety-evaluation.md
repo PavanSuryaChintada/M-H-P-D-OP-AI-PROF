@@ -1,10 +1,10 @@
-# Safety Evaluation & False-Negative Measurement (Doc 21)
+# Safety Evaluation & False-Negative Measurement
 
 **Latest run:** 60 cases, git `6ae4947`, dataset `v1`. Report: `eval/reports/1789807831719-6ae4947a.json`. Reproduce with `npm run eval:safety`.
 
 ## Methodology — read this before the numbers
 
-This harness runs the **real** rule engine (`lib/ai/assessors/rule-engine.ts`) and the **real** consensus algorithm (`lib/ai/consensus.ts`) against every case — the exact functions doc 13 uses in production, not a reimplementation or a stub. What is **not** real: the two LLM assessor slots (Claude, GPT) use pre-authored, representative `TriageResult` outputs rather than live model calls, because this build has no live provider API keys configured — the same `MockProvider`-only pattern every other test in this codebase already uses (see `docs/dev-ai-usage.md` throughout). This is a stated limitation, not a hidden shortcut: **this run measures whether the consensus algorithm and rule engine make the correct decision given a set of assessor opinions, not whether a live LLM would actually produce those opinions.** A meaningful next step (not done here) is re-running this harness with real Anthropic/OpenAI API keys once available, changing nothing else.
+This harness runs the **real** rule engine (`lib/ai/assessors/rule-engine.ts`) and the **real** consensus algorithm (`lib/ai/consensus.ts`) against every case — the exact functions the production escalation path uses, not a reimplementation or a stub. What is **not** real: the two LLM assessor slots (Claude, GPT) use pre-authored, representative `TriageResult` outputs rather than live model calls, because this build has no live provider API keys configured — the same mock-only pattern every other test in this codebase already uses (see `docs/dev-ai-usage.md`). This is a stated limitation, not a hidden shortcut: **this run measures whether the consensus algorithm and rule engine make the correct decision given a set of assessor opinions, not whether a live LLM would actually produce those opinions.** A meaningful next step (not done here) is re-running this harness with real Anthropic/OpenAI API keys once available, changing nothing else.
 
 The rule engine's red flags for this dataset (`eval/red-flags.ts`) are a small fixed set (chest pain, dyspnea, confusion, DVT, fever, wound infection) chosen to be realistic and keyword-detectable — not the full seeded protocol set from doc 11, since this eval doesn't exercise retrieval.
 

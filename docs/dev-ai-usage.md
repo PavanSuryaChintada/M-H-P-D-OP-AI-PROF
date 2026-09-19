@@ -1,6 +1,6 @@
-# Development AI Usage Log — Deliverable 8
+# Development AI Usage Log
 
-Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One entry per session/task, newest first.
+Logged as work happens, since this kind of detail is impossible to reconstruct after the fact. One entry per session/task, newest first.
 
 ---
 

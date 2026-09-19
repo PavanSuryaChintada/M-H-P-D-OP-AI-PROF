@@ -45,12 +45,13 @@ You do **not** need a new Supabase project, a domain name, or a credit card for 
    | `SUPABASE_ANON_KEY` | your `.env` |
    | `NEXT_PUBLIC_SUPABASE_URL` | same value as `SUPABASE_URL` |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same value as `SUPABASE_ANON_KEY` |
-   | `ANTHROPIC_API_KEY` | only if you have one — **leave blank for the demo**, see box below |
-   | `OPENAI_API_KEY` | only if you have one — **leave blank for the demo** |
+   | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | only if you have real vendor keys — otherwise **leave blank**, see box below |
+   | `OPENROUTER_API_KEY` | if you're using OpenRouter instead of separate vendor keys — see box below |
+   | `AI_DAILY_BUDGET_USD` | only needed if you set an AI key above — e.g. `5` |
 
    **Do not set `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, or `WORKER_ID` on Vercel.** `DATABASE_URL` is the superuser/migration connection — the running web app never needs it, only your local machine does (for `db:migrate`). The service role key is only used by a local seed script. Setting either on the public web app is an unnecessary exposure.
 
-   > **Why leave the AI keys blank on purpose:** with no key configured, the app automatically falls back to a deterministic mock AI (`MockProvider`) instead of calling a real, billed model — this is a real safety feature (`lib/ai/providers/select-provider.ts`), not a missing setup step. The whole demo (triage, consensus, escalation) works correctly on the mock. Only add real keys if you specifically want to show a live LLM call, and if you do, also set `AI_DAILY_BUDGET_USD` (e.g. `5`) so a demo mistake can't run up a bill.
+   > **On the AI keys:** with none configured, the app automatically falls back to a deterministic mock AI (`MockProvider`) instead of calling a real, billed model — this is a real safety feature (`lib/ai/providers/select-provider.ts`), not a missing setup step. The whole demo (triage, consensus, escalation) works correctly on the mock, zero cost, zero risk. If you *do* want a live LLM call for the demo, set either the two vendor keys directly, or a single `OPENROUTER_API_KEY` (OpenRouter reaches both a Claude model and a GPT model through one key — this codebase already routes doc 13's two independent assessors to two different underlying models through it, verified against real OpenRouter calls). Whichever you choose, also set `AI_DAILY_BUDGET_USD` so a demo mistake can't run up a bill.
 
 5. Click **Deploy**. Wait for the build to finish (2–4 minutes).
 6. Open the resulting URL (`https://your-project.vercel.app`). You should see the landing page, not an error.
@@ -74,7 +75,7 @@ The worker is a separate, always-on process — it's what actually claims queued
    | `SUPABASE_URL` | same as Vercel |
    | `SUPABASE_ANON_KEY` | same as Vercel |
    | `WORKER_ID` | `railway-worker-1` (or anything distinct — it's just a label) |
-   | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | same choice as you made in Vercel — leave blank unless you specifically want live AI |
+   | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `OPENROUTER_API_KEY` / `AI_DAILY_BUDGET_USD` | same choice as you made in Vercel — leave all blank unless you specifically want live AI |
    | `WORKER_TICK_INTERVAL_MS` | optional, defaults to `15000` (15s) — leave unset unless you want it faster/slower for the demo |
 
 4. Deploy. Open the **Logs** tab and confirm you see:

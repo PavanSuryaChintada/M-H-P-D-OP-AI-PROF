@@ -98,6 +98,19 @@ export const OUTREACH_TASK_ACTIVE_STATES = [
   "CALLBACK_SCHEDULED",
 ] as const;
 
+// Doc 17 R4 — structured resolution outcomes. no_action_needed_false_positive
+// is the false-positive-rate signal doc 21's report aggregates — never
+// collapse it into "other".
+export const escalationResolutionOutcomeEnum = pgEnum("escalation_resolution_outcome", [
+  "contacted_patient",
+  "advised_self_care",
+  "booked_appointment",
+  "referred_to_emergency",
+  "no_action_needed_false_positive",
+  "unable_to_contact",
+  "other",
+]);
+
 // PRD §21
 export const escalationStateEnum = pgEnum("escalation_state", [
   "OPEN",
@@ -640,8 +653,16 @@ export const escalations = pgTable("escalations", {
   priority: integer("priority").notNull().default(0),
   state: escalationStateEnum("state").notNull().default("OPEN"),
   assignedTo: uuid("assigned_to").references(() => users.id),
-  resolution: text("resolution"),
+  resolution: text("resolution"), // doc 17 R4's mandatory resolution notes
+  resolutionOutcome: escalationResolutionOutcomeEnum("resolution_outcome"),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  // Doc 17 R2/R7 — acknowledgedAt is when the escalation first left OPEN
+  // (ACKNOWLEDGED or ASSIGNED, whichever comes first); the two *_seconds
+  // columns are snapshotted at that moment and at resolution, rather than
+  // computed on every read, so doc 18's dashboards can query them directly.
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  timeToAcknowledgeSeconds: integer("time_to_acknowledge_seconds"),
+  timeToResolveSeconds: integer("time_to_resolve_seconds"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index("escalations_hospital_idx").on(t.hospitalId),

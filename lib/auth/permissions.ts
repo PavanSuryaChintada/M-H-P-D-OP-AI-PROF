@@ -25,6 +25,8 @@ export type Action =
   | "queue:view"
   | "patient:view_clinical"
   | "escalation:resolve"
+  | "escalation:view" // doc 17 R5 — the reviewer work queue and review screen. Narrower than queue:view: CAMPAIGN_MANAGER sees the call queue but not clinical escalation content.
+  | "escalation:assign" // doc 17 R3 — acknowledge/assign/reassign/request-info/create-followup-task: lower stakes than resolve, but still not open to CAMPAIGN_MANAGER.
   | "analytics:platform_aggregate";
 
 /**
@@ -103,6 +105,18 @@ const MATRIX: Record<Action, Record<Role, Grant>> = {
   "escalation:resolve": {
     PLATFORM_ADMIN: false,
     HOSPITAL_ADMIN: false,
+    CAMPAIGN_MANAGER: false,
+    CLINICAL_REVIEWER: true,
+  },
+  "escalation:view": {
+    PLATFORM_ADMIN: false,
+    HOSPITAL_ADMIN: true,
+    CAMPAIGN_MANAGER: false,
+    CLINICAL_REVIEWER: true,
+  },
+  "escalation:assign": {
+    PLATFORM_ADMIN: false,
+    HOSPITAL_ADMIN: true,
     CAMPAIGN_MANAGER: false,
     CLINICAL_REVIEWER: true,
   },

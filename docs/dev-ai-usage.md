@@ -326,3 +326,22 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 **Verified**: `tests/analytics-tenant-isolation.test.ts` (5 tests) — campaign progress, capacity gauge, hospital overview, escalation counts, and both backlog counts under Hospital A's context never reflect Hospital B's larger, different dataset. `npx tsc --noEmit`, `npx eslint`, and `npx next build` all clean.
 
 **Deferred**: a shared, reusable capacity-gauge component (currently inlined separately in the dashboard and not reused on `/simulation`); a "reprioritise" campaign control (no such concept exists elsewhere in this build); Platform Admin patient-level drill-in and its audit entry (this build's dashboard never offers one, so there's nothing to audit yet).
+
+---
+
+## 2026-09-19 (same day, later) — Doc 19: Observability, Audit & System Health
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- `lib/obs/logger.ts`: structured JSON logging, correlation ids via `AsyncLocalStorage` (not a threaded parameter, to avoid refactoring every existing call site), every payload run through doc 02's `redact()`. Wired at three points: `runCall` (call start/outcome, the highest PHI-risk surface), the event dispatcher, and every mock-EHR call; `guard.ts` logs auth denials.
+- `lib/obs/health.ts` + `/api/health` + `/admin/health`: system health per R6's exact shape, aggregating across hospitals the same RLS-safe per-hospital-loop way doc 18's Platform Admin dashboard does — never an unscoped cross-hospital query.
+- `workers` table (tenant-scoped, new migration) + heartbeat repo functions feed `stuck_workers` in the health check.
+- Audit viewer (`/admin/hospitals/.../audit`) and a metrics endpoint/page reusing doc 18's analytics functions rather than a second pipeline.
+- **Required test**: seeded a patient with a deliberately distinctive name/phone, ran the real `runCall()` path with the name embedded in the agent's own greeting, captured all console output, and asserted the name/phone never appear in it — while also asserting the transcript *does* contain the name, so the test can't pass vacuously.
+- Local test Postgres had accumulated hundreds of throwaway hospitals from this whole session's test runs, making a per-hospital health-check test time out; reset the disposable container rather than chase an ever-larger timeout.
+- Per user request: added `COMMIT_LOG_PLAIN_ENGLISH.md` (gitignored, local-only) explaining every commit in plain language going forward.
+
+**Verified**: `tests/observability-phi-redaction.test.ts` and `tests/observability-health.test.ts` pass against a fresh local Postgres. `npx tsc --noEmit` and `npx eslint` clean.
+
+**Deferred**: full operation-id wiring through every AI/tool-gateway call (only 3 choke points instrumented); persisted API-latency/error-rate/auth-failure metrics (logged as events, not aggregated into a table — no metrics store in this build).

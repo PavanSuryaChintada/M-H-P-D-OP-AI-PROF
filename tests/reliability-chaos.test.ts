@@ -128,5 +128,7 @@ describe("doc 20 chaos test — 50 tasks, ~30% injected failure", () => {
        group by outreach_task_id, attempt_number having count(*) > 1
     `;
     expect(dupes.length).toBe(0);
-  }, 60000);
+  }, 120000); // 50 tasks x several DB round-trips each against the shared,
+  // latency-heavy Supabase project (see vitest.config.ts) — a real time
+  // budget, not a logic bug.
 });

@@ -3,7 +3,7 @@
 // child rows; the guarded OPEN->ASSIGNED->...->CLOSED lifecycle and the
 // reviewer UI are doc 17's scope.
 
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 import { withTenant, type TenantContext } from "../tenant";
 import { escalations, escalationStateTransitions, escalationAssessments, escalationResolutionOutcomeEnum } from "../schema";
 import type { AssessorOutcome } from "../../ai/schemas/triage";
@@ -180,19 +180,23 @@ export async function transitionEscalationState(
     const from = current.state as EscalationState;
     assertValidEscalationTransition(from, to);
 
-    const now = new Date();
+    // Both the timestamp and the elapsed-seconds figure are computed by a
+    // single now() call on the DB side, not the app server's clock — mixing
+    // a JS Date.now() with a Postgres-generated created_at let real clock
+    // skew between the app host and the DB host produce a negative elapsed
+    // time (caught via a live run against Supabase, not a written test).
     const setValues: Record<string, unknown> = { state: to };
     if (extra.assignedTo !== undefined) setValues.assignedTo = extra.assignedTo;
     if (extra.resolution !== undefined) setValues.resolution = extra.resolution;
     if (extra.resolutionOutcome !== undefined) setValues.resolutionOutcome = extra.resolutionOutcome;
 
     if (!current.acknowledgedAt && (to === "ACKNOWLEDGED" || to === "ASSIGNED")) {
-      setValues.acknowledgedAt = now;
-      setValues.timeToAcknowledgeSeconds = Math.round((now.getTime() - current.createdAt.getTime()) / 1000);
+      setValues.acknowledgedAt = sql`now()`;
+      setValues.timeToAcknowledgeSeconds = sql`greatest(0, round(extract(epoch from (now() - ${escalations.createdAt}))))`;
     }
     if (to === "RESOLVED") {
-      setValues.resolvedAt = now;
-      setValues.timeToResolveSeconds = Math.round((now.getTime() - current.createdAt.getTime()) / 1000);
+      setValues.resolvedAt = sql`now()`;
+      setValues.timeToResolveSeconds = sql`greatest(0, round(extract(epoch from (now() - ${escalations.createdAt}))))`;
     }
 
     const [row] = await tx.update(escalations).set(setValues).where(eq(escalations.id, escalationId)).returning();

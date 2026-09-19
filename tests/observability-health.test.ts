@@ -42,5 +42,10 @@ describe("system health (doc 19 R6)", () => {
     expect(health.queue).toHaveProperty("cutoff_risk");
     expect(health.queue).toHaveProperty("failed");
     expect(health.queue).toHaveProperty("stuck_workers");
-  }, 60000);
+  }, 120000); // this loops per-hospital against the live Supabase project; the
+  // shared demo project has accumulated dozens of hospitals from other test
+  // files' fixtures over the course of this build, and Supabase's pooler adds
+  // several seconds of latency per query (see vitest.config.ts) — this is a
+  // real, expected consequence of sharing one live DB between app and tests,
+  // not a logic bug in getSystemHealth().
 });

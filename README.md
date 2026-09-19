@@ -25,6 +25,19 @@ These are prototype-only demo accounts on a non-production Supabase project — 
 4. `npm run seed:demo-users`
 5. `npm test`, `npm run dev`
 
+**Run these from the project root** (this directory) — not from a subfolder like `app` or `app/admin`, which are route folders inside the app, not separate projects.
+
+## Testing
+
+See `docs/testing.md` for what's covered, by which test, and what's deliberately not tested. Latest full run (all Tier 1/2 requirements from doc 22):
+
+```
+Test Files  41 passed (41)
+     Tests  225 passed (225)
+```
+
+Safety evaluation harness (doc 21) — `npm run eval:safety`: 60 cases, 0.00% false-negative rate, all 6 adversarial (prompt-injection) cases unaffected. Full report in `docs/safety-evaluation.md`.
+
 ---
 
 # Spec Pack — Multi-Hospital Post-Discharge Outreach Platform

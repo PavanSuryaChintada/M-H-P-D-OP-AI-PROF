@@ -116,7 +116,16 @@ export default function EscalationReviewPage() {
       <>
         <HospitalNav hospitalId={hospitalId} />
         <main className="page">
-          <div className="card alert">Error: {error}</div>
+          <div className="error-state">
+            <span className="icon">⚠</span>
+            <div>
+              <div className="title">Couldn&rsquo;t load this escalation</div>
+              <div className="detail">{error}. Retry, or check system health.</div>
+              <div className="actions">
+                <button onClick={() => window.location.reload()}>Retry</button>
+              </div>
+            </div>
+          </div>
         </main>
       </>
     );
@@ -141,12 +150,31 @@ export default function EscalationReviewPage() {
       <main className="page">
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.35rem" }}>
           <h1>Escalation</h1>
-          <span className={escalation.state === "OVERDUE" ? "badge danger" : "badge"}>{escalation.state}</span>
+          <span
+            className={`status ${
+              escalation.state === "OVERDUE"
+                ? "overdue"
+                : escalation.priority >= 3
+                  ? "urgent"
+                  : escalation.priority === 2
+                    ? "concerning"
+                    : escalation.priority === 1
+                      ? "routine"
+                      : "uncertain"
+            }`}
+          >
+            {escalation.state}
+          </span>
         </div>
-        <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>
+        <p className="meta" style={{ marginBottom: "1rem" }}>
           Priority {escalation.priority} · Trigger: {escalation.triggerReason}
         </p>
-        {actionError && <div className="card alert">{actionError}</div>}
+        {actionError && (
+          <div className="error-state">
+            <span className="icon">⚠</span>
+            <div className="detail">{actionError}</div>
+          </div>
+        )}
 
         {/* R3 — patient summary: conditions, medications, discharge date/instructions, risk indicators */}
         <section className="card">

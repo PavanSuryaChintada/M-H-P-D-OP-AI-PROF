@@ -1,38 +1,74 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+/* Doc 25/UI-DESIGN-SPEC.md — operations-console design system. This is a
+   clinical instrument a reviewer stares at for a full shift, not a
+   marketing dashboard: density over whitespace, scannability over beauty,
+   stability over animation. Colour never carries meaning alone, and the
+   only saturated colours anywhere are the five clinical status colours -
+   a failed request is grey, never red, because red means patient urgency. */
+
 :root {
-  --background: #f7f8fa;
-  --surface: #ffffff;
-  --foreground: #1a1d23;
-  --muted: #667085;
-  --border: #e2e5ea;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --warning: #d97706;
-  --warning-bg: #fffbeb;
-  --success: #16a34a;
-  --success-bg: #f0fdf4;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+  /* Surfaces — cool paper, not cream */
+  --canvas: #f2f5f7;
+  --paper: #ffffff;
+  --sunken: #e7ecf0;
+  --hairline: #d4dce3;
+  --hairline-firm: #b3bfca;
+
+  /* Ink */
+  --ink: #16262f;
+  --ink-2: #4b5c68;
+  --ink-3: #7b8b98;
+  --ink-inv: #ffffff;
+
+  /* Interactive — one accent, used sparingly */
+  --action: #1d5c91;
+  --action-hover: #17496f;
+  --action-weak: #e3edf5;
+  --focus: #2b7fc4;
+
+  /* Clinical status — the only saturated colours in the interface */
+  --routine: #1f6e4c;
+  --routine-bg: #e6f1eb;
+  --concerning: #8a5a00;
+  --concerning-bg: #f6eedf;
+  --urgent: #a62b22;
+  --urgent-bg: #f7e5e3;
+  --uncertain: #55447e;
+  --uncertain-bg: #edeaf4;
+  --overdue: #7a1d17;
+  --overdue-bg: #f2dad7;
+
+  /* System feedback — deliberately quiet; a technical failure is grey */
+  --warn: #8a5a00;
+  --fail: #6e7781;
+  --fail-bg: #eef0f2;
+  --ok: #1f6e4c;
+
+  --radius: 0;
+  --shadow-drawer: 0 0 0 1px var(--hairline-firm), -8px 0 24px rgba(22, 38, 47, 0.08);
+
+  /* Back-compat aliases so every existing page (built before this token
+     pass) keeps working without a per-file rewrite. */
+  --background: var(--canvas);
+  --surface: var(--paper);
+  --foreground: var(--ink);
+  --muted: var(--ink-2);
+  --border: var(--hairline);
+  --primary: var(--action);
+  --primary-hover: var(--action-hover);
+  --danger: var(--urgent);
+  --danger-bg: var(--urgent-bg);
+  --warning: var(--concerning);
+  --warning-bg: var(--concerning-bg);
+  --success: var(--routine);
+  --success-bg: var(--routine-bg);
+  --shadow: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1115;
-    --surface: #171a21;
-    --foreground: #e7e9ec;
-    --muted: #9aa2b1;
-    --border: #2a2e37;
-    --primary: #5b8def;
-    --primary-hover: #7ba3f2;
-    --danger: #f87171;
-    --danger-bg: #2a1414;
-    --warning: #fbbf24;
-    --warning-bg: #2a2210;
-    --success: #4ade80;
-    --success-bg: #0f2415;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  }
-}
+/* Light theme only, deliberately (section 0/2.1 of the design spec): a
+   clinical console needs colour-coded severity legible at a glance, and
+   dark surfaces make red read as decoration instead of alarm. */
 
 html {
   height: 100%;
@@ -48,16 +84,24 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--canvas);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
 }
 
 * {
   box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
 }
 
 body :where(h1, h2, h3, p, ul, ol, form, fieldset, table) {
@@ -65,22 +109,43 @@ body :where(h1, h2, h3, p, ul, ol, form, fieldset, table) {
 }
 
 a {
-  color: var(--primary);
+  color: var(--action);
   text-decoration: none;
 }
 a:hover {
   text-decoration: underline;
 }
 
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
 }
 h2 {
-  font-size: 1.05rem;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: 600;
   margin-bottom: 0.75rem;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+.meta {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-3);
+}
+.label {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
 }
 
 /* Shared admin page shell */
@@ -90,22 +155,23 @@ h2 {
   padding: 1.5rem 1.25rem 4rem;
   width: 100%;
 }
+.page.wide {
+  max-width: 1600px;
+}
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  box-shadow: var(--shadow);
 }
 .card.alert {
-  border-color: var(--danger);
-  background: var(--danger-bg);
+  border-color: var(--fail);
+  background: var(--fail-bg);
 }
 .card.warn {
-  border-color: var(--warning);
-  background: var(--warning-bg);
+  border-color: var(--concerning);
+  background: var(--concerning-bg);
 }
 
 .stat-row {
@@ -117,44 +183,50 @@ h2 {
 .stat {
   flex: 1;
   min-width: 140px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
   padding: 1rem 1.1rem;
-  box-shadow: var(--shadow);
 }
 .stat .label {
-  font-size: 0.78rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   margin-bottom: 0.35rem;
 }
 .stat .value {
   font-size: 1.6rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 13px;
 }
 th {
   text-align: left;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  padding: 8px 10px;
+  height: 32px;
+  background: var(--sunken);
+  border-bottom: 1px solid var(--hairline-firm);
 }
 td {
-  padding: 0.6rem;
-  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  height: 40px;
+  border-bottom: 1px solid var(--hairline);
+}
+tbody tr:hover {
+  background: color-mix(in srgb, var(--action-weak) 40%, transparent);
 }
 tr:last-child td {
   border-bottom: none;
+}
+td.num,
+th.num {
+  text-align: right;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 button,
@@ -164,17 +236,17 @@ button,
   gap: 0.4rem;
   font: inherit;
   font-weight: 500;
-  font-size: 0.88rem;
-  padding: 0.5rem 0.9rem;
-  border-radius: 7px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--foreground);
+  font-size: 13px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline-firm);
+  background: var(--paper);
+  color: var(--ink);
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 button:hover {
-  border-color: var(--primary);
+  border-color: var(--action);
 }
 button:disabled {
   opacity: 0.5;
@@ -182,87 +254,291 @@ button:disabled {
 }
 button.primary,
 .btn.primary {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--action);
+  border-color: var(--action);
   color: #fff;
 }
 button.primary:hover {
-  background: var(--primary-hover);
+  background: var(--action-hover);
+}
+button.text {
+  border: none;
+  background: none;
+  color: var(--action);
+  padding: 0 4px;
+  height: auto;
+}
+button.destructive {
+  background: var(--paper);
+  border-color: var(--urgent);
+  color: var(--urgent);
 }
 
 input,
 select,
 textarea {
   font: inherit;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--foreground);
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline-firm);
+  background: var(--paper);
+  color: var(--ink);
+}
+textarea {
+  height: auto;
+  padding: 8px 10px;
 }
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
 .badge {
   display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  background: var(--border);
-  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  background: var(--sunken);
+  color: var(--ink);
 }
 .badge.danger {
-  background: var(--danger-bg);
-  color: var(--danger);
+  background: var(--urgent-bg);
+  color: var(--urgent);
 }
 .badge.warn {
-  background: var(--warning-bg);
-  color: var(--warning);
+  background: var(--concerning-bg);
+  color: var(--concerning);
 }
 .badge.success {
-  background: var(--success-bg);
-  color: var(--success);
+  background: var(--routine-bg);
+  color: var(--routine);
 }
 
-/* Hospital-scoped nav (app/admin/hospitals/[hospitalId]/HospitalNav.tsx) */
+/* Status indicator — 3px left bar + 6px square + label. Not a pill: a
+   pill needs radius (banned) and floats free of the row it describes.
+   The bar ties the status to its row and reads as one severity ribbon
+   down the table. Colour is never the only signal — text label always
+   present alongside it. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  border-left: 3px solid var(--ink-3);
+  font-weight: 500;
+}
+.status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--ink-3);
+  flex: none;
+}
+.status.routine {
+  border-color: var(--routine);
+  color: var(--routine);
+}
+.status.routine::before {
+  background: var(--routine);
+}
+.status.concerning {
+  border-color: var(--concerning);
+  color: var(--concerning);
+}
+.status.concerning::before {
+  background: var(--concerning);
+}
+.status.urgent {
+  border-color: var(--urgent);
+  color: var(--urgent);
+}
+.status.urgent::before {
+  background: var(--urgent);
+}
+.status.uncertain {
+  border-color: var(--uncertain);
+  color: var(--uncertain);
+}
+.status.uncertain::before {
+  background: var(--uncertain);
+}
+.status.overdue {
+  border-color: var(--overdue);
+  color: var(--overdue);
+}
+.status.overdue::before {
+  background: var(--overdue);
+}
+.status.neutral {
+  border-color: var(--ink-3);
+  color: var(--ink-2);
+}
+.status.neutral::before {
+  background: var(--ink-3);
+}
+
+/* Segmented control — replaces stacked filter buttons for one
+   mutually-exclusive choice. Every segment shows its own count. */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--hairline-firm);
+  background: var(--paper);
+  margin-bottom: 1rem;
+}
+.segmented button {
+  border: none;
+  border-right: 1px solid var(--hairline);
+  background: transparent;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+  border-bottom: 2px solid transparent;
+}
+.segmented button:last-child {
+  border-right: none;
+}
+.segmented button .count {
+  margin-left: 6px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--ink-3);
+}
+.segmented button.active {
+  background: var(--action-weak);
+  color: var(--action);
+  border-bottom-color: var(--action);
+  font-weight: 500;
+}
+.segmented button.active .count {
+  color: var(--action);
+}
+.segmented button:hover:not(.active) {
+  background: var(--sunken);
+}
+
+/* Error state — grey, never red. Red is reserved for patient urgency; a
+   fetch failure is a technical event, not a clinical one. */
+.error-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--hairline-firm);
+  background: var(--fail-bg);
+  color: var(--ink);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.error-state .icon {
+  color: var(--fail);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.error-state .title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.error-state .detail {
+  color: var(--ink-2);
+}
+.error-state .actions {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empty-state {
+  color: var(--ink-2);
+  padding: 1.5rem 0.25rem;
+}
+.empty-state .title {
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.stale-banner {
+  background: var(--sunken);
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--hairline-firm);
+  padding: 6px 12px;
+  font-size: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton-row {
+  height: 40px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+.skeleton-bar {
+  height: 12px;
+  width: 60%;
+  background: var(--sunken);
+}
+
+/* Capacity gauge */
+.gauge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+}
+.gauge .track {
+  width: 80px;
+  height: 6px;
+  background: var(--sunken);
+}
+.gauge .fill {
+  height: 100%;
+  background: var(--action);
+}
+.gauge .fill.concerning {
+  background: var(--concerning);
+}
+.gauge .fill.urgent {
+  background: var(--urgent);
+}
+
+/* Hospital-scoped top bar (app/admin/hospitals/[hospitalId]/HospitalNav.tsx).
+   A horizontal top bar rather than the spec's 220px left rail - the full
+   shell restructure every page would need was cut under time pressure;
+   documented in docs/known-limitations.md. */
 .hospital-nav {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   flex-wrap: wrap;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1.25rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--hairline-firm);
+  padding: 0.6rem 1.25rem;
   margin-bottom: 1.5rem;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 .hospital-nav-home {
-  color: var(--muted);
-  font-size: 0.85rem;
+  color: var(--ink-2);
+  font-size: 13px;
   margin-right: 0.75rem;
 }
 .hospital-nav-link {
-  font-size: 0.88rem;
+  font-size: 13px;
   font-weight: 500;
-  padding: 0.4rem 0.7rem;
-  border-radius: 6px;
-  color: var(--muted);
+  padding: 6px 10px;
+  color: var(--ink-2);
 }
 .hospital-nav-link:hover {
-  background: var(--background);
+  background: var(--sunken);
   text-decoration: none;
-  color: var(--foreground);
+  color: var(--ink);
 }
 .hospital-nav-link.active {
-  background: var(--primary);
-  color: #fff;
+  background: var(--action-weak);
+  color: var(--action);
 }
 
 /* Top-level landing nav (app/page.tsx) */
@@ -274,4 +550,11 @@ textarea:focus {
 .landing-nav a {
   flex: 1;
   min-width: 220px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

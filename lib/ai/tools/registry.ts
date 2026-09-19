@@ -20,6 +20,7 @@ import { createObservation } from "../../db/repositories/clinical";
 import { createEscalation } from "../../db/repositories/escalations";
 import { createNotification } from "../../db/repositories/notifications";
 import { createCommunication } from "../../db/repositories/communications";
+import { mockEhrClient } from "../../ehr/client";
 import { recordCallOutcome } from "../../queue/record-outcome";
 import type { ToolDefinition, GatewayResult, AgentName } from "./types";
 import { BusinessRuleError } from "./types";
@@ -216,24 +217,27 @@ const recordCommunication: ToolDefinition<
   handler: async (ctx, args) => createCommunication(ctx, args),
 };
 
-const updateMockEhr: ToolDefinition<{ patientId: string; encounterId?: string; content: string }, unknown> = {
+const updateMockEhr: ToolDefinition<
+  { patientId: string; encounterId?: string; content: string; idempotencyKey: string },
+  unknown
+> = {
   name: "update_mock_ehr",
-  description: "Push a documentation summary back to the (mock) EHR as an outbound communication.",
+  description:
+    "Push a documentation summary to the mock EHR (doc 15) as an outbound communication. Idempotent — replaying the same idempotencyKey returns the original result instead of writing again.",
   argsSchema: z.object({
     patientId: z.uuid(),
     encounterId: z.uuid().optional(),
     content: z.string().min(1),
+    idempotencyKey: z.string().min(1),
   }),
   allowedAgents: ["documentation"],
   writes: true,
   handler: async (ctx, args) =>
-    createCommunication(ctx, {
-      patientId: args.patientId,
-      encounterId: args.encounterId,
-      channel: "ehr_sync",
-      direction: "OUTBOUND",
-      content: args.content,
-    }),
+    mockEhrClient.writeCommunication(
+      ctx,
+      { patientId: args.patientId, encounterId: args.encounterId, channel: "ehr_sync", direction: "OUTBOUND", content: args.content },
+      args.idempotencyKey,
+    ),
 };
 
 export const TOOL_REGISTRY: Record<string, ToolDefinition<never, unknown>> = {

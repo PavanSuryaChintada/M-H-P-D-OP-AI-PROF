@@ -27,6 +27,13 @@ export async function createCall(ctx: TenantContext, input: CreateCallInput) {
   });
 }
 
+/** Doc 17 R3 — "previous outreach history for this patient," oldest first. */
+export async function listCallsForPatient(ctx: TenantContext, patientId: string) {
+  return withTenant(ctx, async (tx) =>
+    tx.select().from(calls).where(eq(calls.patientId, patientId)).orderBy(calls.createdAt),
+  );
+}
+
 export async function getCallById(ctx: TenantContext, callId: string) {
   return withTenant(ctx, async (tx) => {
     const [row] = await tx.select().from(calls).where(eq(calls.id, callId));

@@ -345,3 +345,22 @@ Logged as work happens, per doc 00 §7 ("cannot be reconstructed later"). One en
 **Verified**: `tests/observability-phi-redaction.test.ts` and `tests/observability-health.test.ts` pass against a fresh local Postgres. `npx tsc --noEmit` and `npx eslint` clean.
 
 **Deferred**: full operation-id wiring through every AI/tool-gateway call (only 3 choke points instrumented); persisted API-latency/error-rate/auth-failure metrics (logged as events, not aggregated into a table — no metrics store in this build).
+
+---
+
+## 2026-09-19 (same day, later) — Doc 20: Reliability, Idempotency & Recovery
+
+**Tool:** Claude Code (Sonnet 5).
+
+**What was done:**
+- Generic `idempotency_keys` table + `withIdempotency()` helper for the two of R1's seven operations that didn't already have DB-level idempotency from an earlier doc (five already did — unique constraints on `calls`, `escalations`, `ehr_idempotency_records`, `events.idempotency_key`).
+- Circuit breaker (`lib/reliability/circuit-breaker.ts`, 5 consecutive failures → open 60s → half-open probe), wired into `managed-call.ts` so an open breaker returns the exact same `PROVIDER_ERROR` shape a real outage does — doc 12's repair loop and doc 13's reduced-assessor escalation handle it with zero changes, since they already can't (and shouldn't) distinguish the two.
+- 10s EHR timeout; AI's 30s timeout already existed. Call-turn timeout (R4) documented as not applicable — doc 10's voice intake is a deterministic simulated conversation with no real per-turn latency to bound.
+- Graceful-shutdown controller, documented honestly as having no real long-running process to attach to in this build's serverless-route architecture (unit-tested directly instead).
+- `docs/runbook.md` — five recovery scenarios (stuck task, dead-letter replay, EHR backlog, worker not claiming, capacity leak), each with a check query and a fix.
+- **Required chaos test** (`tests/reliability-chaos.test.ts`): 50 tasks, seeded-RNG ~30% injected failure split between call failures and simulated worker crashes. Two real bugs found writing it: `createHospital` not auto-creating a `hospital_capacity` row (same class of bug as doc 18/19's fixture bugs); and `COMPLETED` only being reachable from `CONNECTED`, not `CALLING` directly (doc 10's known state-machine asymmetry) — fixed by connecting first.
+- Per user request: created `COMMIT_LOG_PLAIN_ENGLISH.md` (gitignored, local-only, not pushed) explaining commits in plain language, added to going forward.
+
+**Verified**: chaos test passes — zero duplicate calls, zero tasks left in CALLING/CONNECTED after reaping, capacity returns to exactly 0. Circuit-breaker and shutdown-controller unit tests pass. Full suite re-run clean after resetting the local dev Postgres container (it had accumulated hundreds of throwaway hospitals across this session's testing, which was slowing down doc 19's per-hospital health check — not a real bug, the same known scaling note already in `docs/dashboards-and-analytics.md`).
+
+**Deferred**: `withIdempotency()` not yet wired into notification/discharge-ingestion call sites (both already have narrower, working ad-hoc protections); full external-call timeout coverage beyond AI/EHR.

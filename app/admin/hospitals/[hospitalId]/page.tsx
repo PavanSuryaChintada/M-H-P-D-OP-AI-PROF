@@ -100,7 +100,17 @@ export default function HospitalDetailPage() {
       setHospital(h);
       setLoadError(null);
       if (h.config) setConfigText(JSON.stringify(h.config, null, 2));
-      if (cRes.ok) setContacts(await cRes.json());
+      if (cRes.ok) {
+        setContacts(await cRes.json());
+      } else {
+        // Previously silent: a failed fetch here (e.g. a session that's no
+        // longer Platform Admin - cookies are shared across tabs, so
+        // logging into a different role elsewhere changes what this tab's
+        // session resolves to) left the list empty with no sign anything
+        // had gone wrong.
+        const body = await cRes.json().catch(() => ({}));
+        setError(body.error ?? `couldn't load escalation contacts (${cRes.status})`);
+      }
       if (rRes.ok) setReadiness(await rRes.json());
     } catch {
       setLoadError("Couldn't reach the server.");

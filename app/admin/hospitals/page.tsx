@@ -22,7 +22,17 @@ export default function HospitalsPage() {
 
   async function load() {
     const res = await fetch("/api/hospitals");
-    if (res.ok) setHospitals(await res.json());
+    if (res.ok) {
+      setHospitals(await res.json());
+      setError(null);
+    } else {
+      // Previously silent: a failed fetch (e.g. a session that's no longer
+      // Platform Admin - cookies are shared across tabs, so logging into a
+      // different role in another tab changes what this one sees) just left
+      // the list empty and looked identical to "genuinely no hospitals."
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? `request failed (${res.status})`);
+    }
     setLoading(false);
   }
 
@@ -57,6 +67,8 @@ export default function HospitalsPage() {
 
       {loading ? (
         <p>Loading…</p>
+      ) : error ? (
+        <p className="card" style={{ color: "var(--danger)" }}>Couldn&rsquo;t load hospitals: {error}</p>
       ) : hospitals.length === 0 ? (
         <p className="card">No hospitals yet.</p>
       ) : (

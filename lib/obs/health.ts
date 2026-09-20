@@ -94,7 +94,17 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   }
 
   const hospitals = await listHospitals();
-  const perHospital = await Promise.all(hospitals.map((h) => getOneHospitalQueueStats(h.id)));
+  // Sequential, not Promise.all: each getOneHospitalQueueStats call holds a
+  // pool connection for its whole transaction, and the pool is capped at 3
+  // on Vercel (lib/db/client.ts). Firing one per hospital concurrently
+  // queues far more transactions than the pool can serve as the hospital
+  // count grows, which is what made this timeout in production - the same
+  // pool-starvation pattern documented on lib/analytics/platform-admin.ts's
+  // getPlatformStats.
+  const perHospital = [];
+  for (const h of hospitals) {
+    perHospital.push(await getOneHospitalQueueStats(h.id));
+  }
 
   const queue: QueueHealth = perHospital.reduce(
     (acc, { row, stuckWorkers }) => ({

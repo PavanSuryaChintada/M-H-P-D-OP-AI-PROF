@@ -106,14 +106,22 @@ async function getOneHospitalAiUsage(hospitalId: string, tx: Tx): Promise<AiUsag
  */
 export async function getPlatformStats(): Promise<{ overview: PlatformOverview; aiUsage: AiUsageStat[] }> {
   const hospitals = await listHospitals();
-  const perHospital = await Promise.all(
-    hospitals.map((h) =>
-      withHospitalContext(h.id, async (tx) => ({
+  // Sequential, not Promise.all: each withHospitalContext call holds a pool
+  // connection for its whole transaction, and the pool is capped at 3 on
+  // Vercel (lib/db/client.ts) so it doesn't exhaust Supavisor's own small
+  // upstream limit across concurrent serverless instances. Firing all of
+  // them at once queues far more transactions than the pool can serve,
+  // which is what made this endpoint time out as the hospital count grew
+  // past what the pool could realistically hold open simultaneously.
+  const perHospital = [];
+  for (const h of hospitals) {
+    perHospital.push(
+      await withHospitalContext(h.id, async (tx) => ({
         activity: await getOneHospitalActivity(h.id, h.name, tx),
         aiUsage: await getOneHospitalAiUsage(h.id, tx),
       })),
-    ),
-  );
+    );
+  }
 
   const totals = perHospital.reduce(
     (acc, { activity }) => ({

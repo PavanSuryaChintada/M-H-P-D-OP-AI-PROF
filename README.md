@@ -8,6 +8,18 @@ AI-powered patient follow-up, clinical triage, and hospital outreach operations 
 
 The written deliverables (architecture, queue design, safety evaluation, AI usage, known limitations, and the rest) live in [`docs/`](docs/). Start with `docs/architecture.md` for the system overview.
 
+Quick index for the categories reviewers ask about most:
+
+| Category | Doc |
+|---|---|
+| System architecture | [`docs/architecture.md`](docs/architecture.md) |
+| AI usage in the product (models, agents, retrieval, consensus, gateway) | [`docs/ai-architecture.md`](docs/ai-architecture.md) |
+| Product AI documentation (what the AI does and why, non-technical) | [`docs/product-ai-documentation.md`](docs/product-ai-documentation.md) |
+| AI tools used to build this project, and their roles | [`docs/ai-tools-and-usage.md`](docs/ai-tools-and-usage.md) |
+| Example prompts used with each build tool | [`docs/ai-prompts.md`](docs/ai-prompts.md) |
+| Development AI usage log (Claude Code, session by session) | [`docs/dev-ai-usage.md`](docs/dev-ai-usage.md) |
+| Known limitations & tradeoffs | [`docs/known-limitations.md`](docs/known-limitations.md) |
+
 ## Architecture
 
 ```

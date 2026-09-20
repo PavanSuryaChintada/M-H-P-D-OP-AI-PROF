@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import PlatformNav from "../PlatformNav";
 
 interface Hospital {
   id: string;
@@ -49,10 +50,9 @@ export default function HospitalsPage() {
   }
 
   return (
-    <main className="page">
-      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-        ← Home
-      </Link>
+    <>
+      <PlatformNav />
+      <main className="page">
       <h1 style={{ margin: "0.5rem 0 1rem" }}>Hospitals</h1>
 
       {loading ? (
@@ -108,6 +108,7 @@ export default function HospitalsPage() {
         </form>
         {error && <p style={{ color: "var(--danger)", marginTop: "0.5rem" }}>{error}</p>}
       </section>
-    </main>
+      </main>
+    </>
   );
 }

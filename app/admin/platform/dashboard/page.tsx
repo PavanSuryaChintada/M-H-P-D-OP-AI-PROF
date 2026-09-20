@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import PlatformNav from "../../PlatformNav";
 
 // Doc 18 R3 — Platform Admin dashboard. Not hospital-scoped. Aggregates
 // only (per-hospital rows here are activity counts, never patient-level
@@ -52,19 +52,13 @@ export default function PlatformAdminDashboard() {
     return () => clearInterval(interval);
   }, [load]);
 
-  if (error) return <main className="page"><div className="card alert">Error: {error}</div></main>;
-  if (!data) return <main className="page">Loading…</main>;
+  if (error) return <><PlatformNav /><main className="page"><div className="card alert">Error: {error}</div></main></>;
+  if (!data) return <><PlatformNav /><main className="page">Loading…</main></>;
 
   return (
-    <main className="page" style={{ maxWidth: 1100 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-          ← Home
-        </Link>
-        <Link href="/admin/hospitals" className="btn">
-          All hospitals →
-        </Link>
-      </div>
+    <>
+      <PlatformNav />
+      <main className="page" style={{ maxWidth: 1100 }}>
       <h1 style={{ margin: "0.5rem 0 0.25rem" }}>Platform Admin dashboard</h1>
       <p style={{ color: "var(--muted)", marginBottom: "1.25rem" }}>Aggregates only — no patient-level data is shown here.</p>
 
@@ -142,6 +136,7 @@ export default function PlatformAdminDashboard() {
           </tbody>
         </table>
       </section>
-    </main>
+      </main>
+    </>
   );
 }

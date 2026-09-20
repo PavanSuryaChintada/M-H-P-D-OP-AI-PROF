@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import PlatformNav from "../PlatformNav";
 
 // Doc 19 R6 — "put it on screen too."
 interface SystemHealth {
@@ -33,13 +33,12 @@ export default function SystemHealthPage() {
     return () => clearInterval(interval);
   }, [load]);
 
-  if (!data) return <main className="page">Loading…</main>;
+  if (!data) return <><PlatformNav /><main className="page">Loading…</main></>;
 
   return (
-    <main className="page" style={{ maxWidth: 800 }}>
-      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-        ← Home
-      </Link>
+    <>
+      <PlatformNav />
+      <main className="page" style={{ maxWidth: 800 }}>
       <h1 style={{ margin: "0.5rem 0 1rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
         System health <span className={STATUS_CLASS[data.status] ?? "badge"}>{data.status}</span>
       </h1>
@@ -69,6 +68,7 @@ export default function SystemHealthPage() {
           <li style={{ color: data.queue.stuck_workers > 0 ? "var(--danger)" : "inherit" }}>Stuck workers: {data.queue.stuck_workers}</li>
         </ul>
       </section>
-    </main>
+      </main>
+    </>
   );
 }

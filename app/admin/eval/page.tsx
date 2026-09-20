@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import PlatformNav from "../PlatformNav";
 
 // Doc 21 deliverable — renders the latest safety eval report so a grader
 // can see the results without running `npm run eval:safety` themselves.
@@ -34,14 +34,13 @@ export default function EvalReportPage() {
     });
   }, []);
 
-  if (error) return <main className="page"><div className="card alert">Error: {error}</div></main>;
-  if (!report) return <main className="page">Loading…</main>;
+  if (error) return <><PlatformNav /><main className="page"><div className="card alert">Error: {error}</div></main></>;
+  if (!report) return <><PlatformNav /><main className="page">Loading…</main></>;
 
   return (
-    <main className="page">
-      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-        ← Home
-      </Link>
+    <>
+      <PlatformNav />
+      <main className="page">
       <h1 style={{ margin: "0.5rem 0 0.25rem" }}>Safety evaluation report</h1>
       <p style={{ color: "var(--muted)", marginBottom: "1.25rem" }}>
         Generated {new Date(report.generatedAt).toLocaleString()} — git {report.gitSha.slice(0, 8)} — dataset {report.datasetVersion}
@@ -116,6 +115,7 @@ export default function EvalReportPage() {
           ))}
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }

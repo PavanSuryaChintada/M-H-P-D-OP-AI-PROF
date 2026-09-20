@@ -52,3 +52,30 @@ export async function withHospitalContext<T>(hospitalId: string, fn: (tx: Tx) =>
     return fn(tx);
   });
 }
+
+/**
+ * Like withHospitalContext, but for a cross-hospital aggregate that has to
+ * touch every hospital in one request (doc 18 R3's platform dashboard, doc
+ * 19 R6's health check) - opens ONE transaction and re-scopes
+ * app.hospital_id between hospitals inside it, instead of one
+ * db.transaction() per hospital. That's not just fewer round trips: N
+ * separate transactions fired in a loop each need their own connection
+ * from the pool, and against Supabase's Supavisor pooler (transaction
+ * mode) that pattern was observed live throwing "there is already a
+ * transaction in progress" and hanging the whole request under production
+ * load. A single transaction can't hit that failure mode - there's exactly
+ * one BEGIN/COMMIT for the entire call, regardless of hospital count.
+ */
+export async function withEachHospitalContext<T>(
+  hospitalIds: string[],
+  fn: (tx: Tx, hospitalId: string) => Promise<T>,
+): Promise<T[]> {
+  return db.transaction(async (tx) => {
+    const results: T[] = [];
+    for (const hospitalId of hospitalIds) {
+      await tx.execute(sql`select set_config('app.hospital_id', ${hospitalId}, true)`);
+      results.push(await fn(tx, hospitalId));
+    }
+    return results;
+  });
+}

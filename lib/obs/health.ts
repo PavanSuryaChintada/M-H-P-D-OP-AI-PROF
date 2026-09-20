@@ -6,7 +6,7 @@
 
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { withHospitalContext } from "../db/tenant";
+import { withEachHospitalContext, type Tx } from "../db/tenant";
 import { listHospitals } from "../db/repositories/hospitals";
 import { STUCK_THRESHOLD_SECONDS } from "../db/repositories/workers";
 
@@ -45,42 +45,33 @@ async function checkDatabase(): Promise<ComponentStatus> {
   }
 }
 
-async function getOneHospitalQueueStats(hospitalId: string) {
-  return withHospitalContext(hospitalId, async (tx) => {
-    // The stuck-workers count is folded into this same query/transaction
-    // rather than calling countStuckWorkers() (its own separate
-    // withHospitalContext transaction) - awaiting a second transaction
-    // while this one is still open means every in-flight hospital needs
-    // two pool connections at once instead of one. Harmless at a small
-    // pool size or low hospital count; with Promise.all fanning out over
-    // many hospitals against a small pool (serverless-safe sizing, see
-    // db/client.ts), every outer transaction ends up holding a connection
-    // while waiting on an inner one that has nothing left to claim -
-    // a self-inflicted deadlock, not slow network, confirmed live.
-    const [row] = await tx.execute<{
-      active_calls: number;
-      max_calls: number;
-      pending: string;
-      oldest_pending_seconds: number | null;
-      cutoff_risk: string;
-      failed: string;
-      ehr_failed: string;
-      ehr_total: string;
-      stuck_workers: string;
-    }>(sql`
-      select
-        coalesce((select current_active_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as active_calls,
-        coalesce((select max_concurrent_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as max_calls,
-        (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state = 'PENDING') as pending,
-        (select extract(epoch from (now() - min(created_at)))::int from outreach_tasks where hospital_id = ${hospitalId} and state = 'PENDING') as oldest_pending_seconds,
-        (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and tier = 1 and state not in ('COMPLETED','MANUAL_FOLLOW_UP','FAILED','ESCALATED')) as cutoff_risk,
-        (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state = 'FAILED') as failed,
-        (select count(*) from documentation_records where hospital_id = ${hospitalId} and ehr_sync_status = 'FAILED' and created_at > now() - interval '1 hour') as ehr_failed,
-        (select count(*) from documentation_records where hospital_id = ${hospitalId} and created_at > now() - interval '1 hour') as ehr_total,
-        (select count(*) from workers where hospital_id = ${hospitalId} and last_heartbeat_at < now() - make_interval(secs => ${STUCK_THRESHOLD_SECONDS})) as stuck_workers
-    `);
-    return { row, stuckWorkers: Number(row.stuck_workers) };
-  });
+async function getOneHospitalQueueStats(hospitalId: string, tx: Tx) {
+  // The stuck-workers count is folded into this same query rather than a
+  // separate one - see withEachHospitalContext for why every hospital in
+  // this call shares one transaction instead of opening its own.
+  const [row] = await tx.execute<{
+    active_calls: number;
+    max_calls: number;
+    pending: string;
+    oldest_pending_seconds: number | null;
+    cutoff_risk: string;
+    failed: string;
+    ehr_failed: string;
+    ehr_total: string;
+    stuck_workers: string;
+  }>(sql`
+    select
+      coalesce((select current_active_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as active_calls,
+      coalesce((select max_concurrent_calls from hospital_capacity where hospital_id = ${hospitalId}), 0) as max_calls,
+      (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state = 'PENDING') as pending,
+      (select extract(epoch from (now() - min(created_at)))::int from outreach_tasks where hospital_id = ${hospitalId} and state = 'PENDING') as oldest_pending_seconds,
+      (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and tier = 1 and state not in ('COMPLETED','MANUAL_FOLLOW_UP','FAILED','ESCALATED')) as cutoff_risk,
+      (select count(*) from outreach_tasks where hospital_id = ${hospitalId} and state = 'FAILED') as failed,
+      (select count(*) from documentation_records where hospital_id = ${hospitalId} and ehr_sync_status = 'FAILED' and created_at > now() - interval '1 hour') as ehr_failed,
+      (select count(*) from documentation_records where hospital_id = ${hospitalId} and created_at > now() - interval '1 hour') as ehr_total,
+      (select count(*) from workers where hospital_id = ${hospitalId} and last_heartbeat_at < now() - make_interval(secs => ${STUCK_THRESHOLD_SECONDS})) as stuck_workers
+  `);
+  return { row, stuckWorkers: Number(row.stuck_workers) };
 }
 
 export async function getSystemHealth(): Promise<SystemHealth> {
@@ -94,17 +85,10 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   }
 
   const hospitals = await listHospitals();
-  // Sequential, not Promise.all: each getOneHospitalQueueStats call holds a
-  // pool connection for its whole transaction, and the pool is capped at 3
-  // on Vercel (lib/db/client.ts). Firing one per hospital concurrently
-  // queues far more transactions than the pool can serve as the hospital
-  // count grows, which is what made this timeout in production - the same
-  // pool-starvation pattern documented on lib/analytics/platform-admin.ts's
-  // getPlatformStats.
-  const perHospital = [];
-  for (const h of hospitals) {
-    perHospital.push(await getOneHospitalQueueStats(h.id));
-  }
+  const perHospital = await withEachHospitalContext(
+    hospitals.map((h) => h.id),
+    (tx, hospitalId) => getOneHospitalQueueStats(hospitalId, tx),
+  );
 
   const queue: QueueHealth = perHospital.reduce(
     (acc, { row, stuckWorkers }) => ({

@@ -11,7 +11,7 @@
 // from a hospital the caller didn't explicitly scope into.
 
 import { sql } from "drizzle-orm";
-import { withHospitalContext, type Tx } from "../db/tenant";
+import { withEachHospitalContext, type Tx } from "../db/tenant";
 import { listHospitals } from "../db/repositories/hospitals";
 
 export interface HospitalActivity {
@@ -106,22 +106,20 @@ async function getOneHospitalAiUsage(hospitalId: string, tx: Tx): Promise<AiUsag
  */
 export async function getPlatformStats(): Promise<{ overview: PlatformOverview; aiUsage: AiUsageStat[] }> {
   const hospitals = await listHospitals();
-  // Sequential, not Promise.all: each withHospitalContext call holds a pool
-  // connection for its whole transaction, and the pool is capped at 3 on
-  // Vercel (lib/db/client.ts) so it doesn't exhaust Supavisor's own small
-  // upstream limit across concurrent serverless instances. Firing all of
-  // them at once queues far more transactions than the pool can serve,
-  // which is what made this endpoint time out as the hospital count grew
-  // past what the pool could realistically hold open simultaneously.
-  const perHospital = [];
-  for (const h of hospitals) {
-    perHospital.push(
-      await withHospitalContext(h.id, async (tx) => ({
-        activity: await getOneHospitalActivity(h.id, h.name, tx),
-        aiUsage: await getOneHospitalAiUsage(h.id, tx),
-      })),
-    );
-  }
+  const hospitalNames = new Map(hospitals.map((h) => [h.id, h.name]));
+  // One shared transaction across every hospital, not one withHospitalContext
+  // (i.e. one db.transaction()) per hospital - see withEachHospitalContext
+  // for why: N separate transactions fired per request was observed live
+  // throwing "there is already a transaction in progress" against
+  // Supabase's Supavisor pooler and hanging the whole request as the
+  // hospital count grew, not just running slow.
+  const perHospital = await withEachHospitalContext(
+    hospitals.map((h) => h.id),
+    async (tx, hospitalId) => ({
+      activity: await getOneHospitalActivity(hospitalId, hospitalNames.get(hospitalId)!, tx),
+      aiUsage: await getOneHospitalAiUsage(hospitalId, tx),
+    }),
+  );
 
   const totals = perHospital.reduce(
     (acc, { activity }) => ({

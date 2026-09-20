@@ -35,6 +35,7 @@ import { settleAssessors, escalateFromConsensus } from "../ai/run-consensus";
 import { MockProvider } from "../ai/providers/mock";
 import { runTriageAssessor } from "../ai/triage/run-assessor";
 import { clinicalTriageV1 } from "../ai/prompts/clinical-triage/v1";
+import { secondAssessorV1 } from "../ai/prompts/second-assessor/v1";
 import type { TriageResult } from "../ai/schemas/triage";
 import { log, runWithOperationId } from "../obs/logger";
 
@@ -132,6 +133,31 @@ async function triggerEmergencyEscalation(
           system: clinicalTriageV1.system,
           buildPrompt: () => "emergency call — assess transcript",
           promptVersion: clinicalTriageV1.version,
+          transcript: ruleEngineTurns,
+          ctx,
+          callId: callId ?? "",
+          patientId,
+        }),
+    },
+    {
+      // Was missing entirely until found during demo verification: this
+      // comment always claimed "the two LLM seats still vote," but only
+      // claude-triage-v1 was ever actually wired into this array - every
+      // real emergency-triggered escalation this build has ever produced
+      // was persisted with 2 assessments, not the required 3, silently
+      // (settleAssessors/escalateFromConsensus have no way to know a
+      // caller only gave them a partial roster). mockLlm already had a
+      // canned gpt-triage-v1 response queued and unused.
+      assessorId: "gpt-triage-v1",
+      run: () =>
+        runTriageAssessor({
+          assessorId: "gpt-triage-v1",
+          agentLabel: "second_assessor",
+          provider: mockLlm,
+          model: "mock",
+          system: secondAssessorV1.system,
+          buildPrompt: () => "emergency call — assess transcript",
+          promptVersion: secondAssessorV1.version,
           transcript: ruleEngineTurns,
           ctx,
           callId: callId ?? "",

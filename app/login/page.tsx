@@ -33,15 +33,23 @@ export default function LoginPage() {
       return;
     }
 
-    // Platform Admin is the only role allowed to see /admin/hospitals (the
-    // full cross-hospital list, by design - see app/api/hospitals/route.ts).
     // Every other role has exactly one real hospital in this demo; send
-    // them straight there instead of a page that 403s for them.
+    // them straight there instead of the plain hospital list (which is
+    // PLATFORM_ADMIN-only anyway - see app/api/hospitals/route.ts - and
+    // 403s for everyone else).
     try {
       const res = await fetch("/api/me");
       const me = res.ok ? await res.json() : null;
       if (me && !me.isPlatformAdmin && me.hospitals?.length === 1) {
         router.push(`/admin/hospitals/${me.hospitals[0].hospitalId}`);
+        return;
+      }
+      // Platform Admin's real landing page is the cross-hospital analytics
+      // dashboard, not the bare CRUD list of hospitals - that list has no
+      // charts, no AI usage, no queue health, just a table. The dashboard
+      // links to the list for anyone who needs to open a specific hospital.
+      if (me?.isPlatformAdmin) {
+        router.push("/admin/platform/dashboard");
         return;
       }
     } catch {

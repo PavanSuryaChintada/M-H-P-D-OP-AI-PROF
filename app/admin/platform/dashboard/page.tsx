@@ -57,9 +57,14 @@ export default function PlatformAdminDashboard() {
 
   return (
     <main className="page" style={{ maxWidth: 1100 }}>
-      <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-        ← Home
-      </Link>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <Link href="/" style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+          ← Home
+        </Link>
+        <Link href="/admin/hospitals" className="btn">
+          All hospitals →
+        </Link>
+      </div>
       <h1 style={{ margin: "0.5rem 0 0.25rem" }}>Platform Admin dashboard</h1>
       <p style={{ color: "var(--muted)", marginBottom: "1.25rem" }}>Aggregates only — no patient-level data is shown here.</p>
 

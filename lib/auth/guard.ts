@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAllowed, ForbiddenError, type Action } from "./permissions";
+import { can, requireAllowed, ForbiddenError, type Action } from "./permissions";
 import {
   resolveTenantContext,
   getCurrentAppUser,
@@ -33,6 +33,20 @@ export async function guard(hospitalId: string, action: Action): Promise<TenantC
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
     }
     if (err instanceof NoHospitalAccessError) {
+      // A Platform Admin holds no ORDINARY per-hospital role, so
+      // resolveTenantContext() rejects them here before the permission
+      // matrix is ever consulted - even for actions the matrix already
+      // grants them outright (hospital:read, hospital:configure,
+      // hospital:manage_users - onboarding/admin metadata, not clinical
+      // content). That's a real gap, not a security feature: a Platform
+      // Admin literally could not open a hospital's own Overview page.
+      // Only a plain `true` grant gets this fallback - "audited" grants
+      // like patient:view_clinical still require the separate, reasoned
+      // resolvePlatformAdminAccess() path (doc 02 R3), never this one.
+      const appUser = await getCurrentAppUser();
+      if (appUser?.isPlatformAdmin && can("PLATFORM_ADMIN", action) === true) {
+        return { hospitalId, userId: appUser.id, role: "PLATFORM_ADMIN" };
+      }
       log("warn", "auth.denied", { action, hospitalId, reason: "no_hospital_access" });
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }

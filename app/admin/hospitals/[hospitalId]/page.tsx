@@ -72,6 +72,7 @@ export default function HospitalDetailPage() {
   const [contacts, setContacts] = useState<EscalationContact[]>([]);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [contactRole, setContactRole] = useState("");
   const [contactChannel, setContactChannel] = useState("EMAIL");
@@ -79,18 +80,31 @@ export default function HospitalDetailPage() {
   const [contactTimeout, setContactTimeout] = useState(15);
 
   async function loadAll() {
-    const [hRes, cRes, rRes] = await Promise.all([
-      fetch(`/api/hospitals/${hospitalId}`),
-      fetch(`/api/hospitals/${hospitalId}/escalation-contacts`),
-      fetch(`/api/hospitals/${hospitalId}/readiness`),
-    ]);
-    if (hRes.ok) {
+    try {
+      const [hRes, cRes, rRes] = await Promise.all([
+        fetch(`/api/hospitals/${hospitalId}`),
+        fetch(`/api/hospitals/${hospitalId}/escalation-contacts`),
+        fetch(`/api/hospitals/${hospitalId}/readiness`),
+      ]);
+      if (!hRes.ok) {
+        // Previously silent: a failed fetch here (403/404/500) left
+        // `hospital` at its initial null forever, so the page just showed
+        // "Loading..." indefinitely with no way to tell it had actually
+        // failed. This is the primary request the page can't render
+        // without, so its failure is the one that must be visible.
+        const body = await hRes.json().catch(() => ({}));
+        setLoadError(body.error ?? `request failed (${hRes.status})`);
+        return;
+      }
       const h: Hospital = await hRes.json();
       setHospital(h);
+      setLoadError(null);
       if (h.config) setConfigText(JSON.stringify(h.config, null, 2));
+      if (cRes.ok) setContacts(await cRes.json());
+      if (rRes.ok) setReadiness(await rRes.json());
+    } catch {
+      setLoadError("Couldn't reach the server.");
     }
-    if (cRes.ok) setContacts(await cRes.json());
-    if (rRes.ok) setReadiness(await rRes.json());
   }
 
   useEffect(() => {
@@ -154,6 +168,26 @@ export default function HospitalDetailPage() {
       return;
     }
     loadAll();
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <HospitalNav hospitalId={hospitalId} />
+        <main className="page">
+          <div className="error-state">
+            <span className="icon">⚠</span>
+            <div>
+              <div className="title">Couldn&rsquo;t load this hospital</div>
+              <div className="detail">{loadError}</div>
+              <div className="actions">
+                <button onClick={() => window.location.reload()}>Retry</button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </>
+    );
   }
 
   if (!hospital) {

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import SiteHeader from "../SiteHeader";
 
 // Doc 23 R3 — demo credentials shown directly on the login page, not just
 // in the README, so an evaluator can log in without leaving the browser.
@@ -60,7 +61,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="page" style={{ maxWidth: 420, marginTop: "3rem" }}>
+    <>
+      <SiteHeader />
+      <main className="page" style={{ maxWidth: 420, marginTop: "3rem" }}>
       <h1 style={{ marginBottom: "1.25rem" }}>Sign in</h1>
       <form onSubmit={handleSubmit} className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <input
@@ -115,6 +118,7 @@ export default function LoginPage() {
           </tbody>
         </table>
       </section>
-    </main>
+      </main>
+    </>
   );
 }

@@ -25,7 +25,7 @@ import { eq } from "drizzle-orm";
 import { findUserByEmail } from "../lib/db/repositories/users";
 import { upsertHospitalCapacity } from "../lib/db/repositories/hospital-capacity";
 import { addEscalationContact } from "../lib/db/repositories/escalation-contacts";
-import { createCampaign } from "../lib/db/repositories/campaigns";
+import { createCampaign, listCampaigns } from "../lib/db/repositories/campaigns";
 import { transitionCampaign } from "../lib/campaigns/transition";
 import { ingestDischargeRecord } from "../lib/discharge/ingest";
 import { HospitalConfigSchema, type HospitalConfig } from "../lib/hospitals/config-schema";
@@ -51,15 +51,20 @@ function pad(n: number, width: number) {
   return String(n).padStart(width, "0");
 }
 
-function generateRecord(rng: ReturnType<typeof createRng>, seq: number, now: Date): DischargeRecord {
+function generateRecord(rng: ReturnType<typeof createRng>, seq: number, now: Date, runTag: string): DischargeRecord {
   const riskLevel = rng.pick(RISK_LEVELS, RISK_WEIGHTS);
   const firstName = rng.pick(FIRST_NAMES);
   const lastName = rng.pick(LAST_NAMES);
   const hoursAgo = rng.int(0, 48);
   return {
-    sourceMessageId: `DEMO-DISCH-${pad(seq, 4)}`,
+    // runTag makes every run's records genuinely new (sourceMessageId is
+    // the idempotency key - a fixed one meant a second run of this script
+    // just re-confirmed the same 24 patients, 0 new, which is useless the
+    // day before a demo when you want a fresh, still-PENDING queue to show
+    // moving on camera instead of one the worker already fully drained.
+    sourceMessageId: `DEMO-DISCH-${runTag}-${pad(seq, 4)}`,
     patient: {
-      mrn: `DEMO-${pad(seq, 5)}`,
+      mrn: `DEMO-${runTag}-${pad(seq, 5)}`,
       firstName,
       lastName,
       phone: `+1555${pad(rng.int(0, 9999999), 7)}`,
@@ -120,25 +125,46 @@ async function main() {
   await updateHospitalStatus(hospital.id, "READY");
   console.log("  config, capacity, escalation contact, status=READY done.");
 
-  const rng = createRng(7);
+  const runTag = Date.now().toString(36).toUpperCase().slice(-6);
+  const rng = createRng(Date.now());
   const now = new Date();
-  const records = Array.from({ length: PATIENT_COUNT }, (_, i) => generateRecord(rng, i + 1, now));
+  const records = Array.from({ length: PATIENT_COUNT }, (_, i) => generateRecord(rng, i + 1, now, runTag));
   let created = 0;
   for (const record of records) {
     const result = await ingestDischargeRecord(ctx, record);
     if (result.status === "created") created++;
   }
-  console.log(`  ${created} new patients ingested (of ${PATIENT_COUNT} discharge records processed).`);
+  console.log(`  ${created} new patients ingested (run tag ${runTag}, of ${PATIENT_COUNT} discharge records processed).`);
 
-  const campaign = await createCampaign(ctx, {
-    name: "Demo post-discharge follow-up",
-    description: "Seeded for the demo - eligibility criteria intentionally empty (matches every risk level/condition).",
-    eligibilityCriteria: {},
-    followUpWindowHours: 72,
-  });
-  await transitionCampaign(ctx, campaign.id, "READY", "seed script");
-  await transitionCampaign(ctx, campaign.id, "RUNNING", "seed script");
-  console.log(`  campaign "${campaign.name}" created and RUNNING (${campaign.id}).`);
+  // Reuse the existing demo campaign rather than creating a new one every
+  // run (which would leave several RUNNING campaigns all competing for the
+  // same capacity, confusing on camera). Pausing then resuming an already-
+  // RUNNING campaign forces the same eligibility recompute + materialize
+  // that RUNNING normally does on creation, so the freshly-ingested
+  // patients above actually get queued - see doc 05 R4, "resume
+  // recomputes eligibility rather than replaying the old task list."
+  const existing = await listCampaigns(ctx);
+  const CAMPAIGN_NAME = "Demo post-discharge follow-up";
+  let campaign = existing.find((c) => c.name === CAMPAIGN_NAME);
+
+  if (!campaign) {
+    campaign = await createCampaign(ctx, {
+      name: CAMPAIGN_NAME,
+      description: "Seeded for the demo - eligibility criteria intentionally empty (matches every risk level/condition).",
+      eligibilityCriteria: {},
+      followUpWindowHours: 72,
+    });
+    await transitionCampaign(ctx, campaign.id, "READY", "seed script");
+    await transitionCampaign(ctx, campaign.id, "RUNNING", "seed script");
+    console.log(`  campaign "${campaign.name}" created and RUNNING (${campaign.id}).`);
+  } else if (campaign.state === "RUNNING") {
+    await transitionCampaign(ctx, campaign.id, "PAUSED", "seed script re-run: recompute eligibility for new patients");
+    await transitionCampaign(ctx, campaign.id, "RUNNING", "seed script re-run: recompute eligibility for new patients");
+    console.log(`  campaign "${campaign.name}" already existed - paused/resumed to pick up the new patients (${campaign.id}).`);
+  } else {
+    await transitionCampaign(ctx, campaign.id, "RUNNING", "seed script re-run");
+    console.log(`  campaign "${campaign.name}" already existed in state ${campaign.state} - transitioned to RUNNING (${campaign.id}).`);
+  }
 
   console.log("\nDone. The worker will start claiming and calling these patients within its next few ticks.");
 }

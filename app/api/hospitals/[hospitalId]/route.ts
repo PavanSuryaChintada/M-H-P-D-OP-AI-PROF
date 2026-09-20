@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { guard } from "@/lib/auth/guard";
+import { guardOrPlatformAdmin } from "@/lib/auth/guard";
 import { getHospitalById } from "@/lib/db/repositories/hospitals";
 
-// Any role that holds a user_hospital_roles row for this hospital. Doc 02
-// acceptance criteria, demonstrated by this route: no session → 401; wrong
-// role → 403; no access to this hospital (including one that doesn't exist
-// at all) → 404, so a caller can't distinguish the two.
+// Any role that holds a user_hospital_roles row for this hospital, or a
+// Platform Admin viewing a hospital they don't otherwise have a role at
+// (guardOrPlatformAdmin - hospital:read is a plain `true` grant for them).
+// Doc 02 acceptance criteria, demonstrated by this route: no session → 401;
+// wrong role → 403; no access to this hospital (including one that doesn't
+// exist at all) → 404, so a caller can't distinguish the two.
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ hospitalId: string }> }) {
   const { hospitalId } = await params;
-  const gate = await guard(hospitalId, "hospital:read");
+  const gate = await guardOrPlatformAdmin(hospitalId, "hospital:read");
   if (gate instanceof Response) return gate;
 
   const hospital = await getHospitalById(hospitalId);

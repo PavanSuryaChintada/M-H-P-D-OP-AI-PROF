@@ -33,20 +33,10 @@ export async function guard(hospitalId: string, action: Action): Promise<TenantC
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
     }
     if (err instanceof NoHospitalAccessError) {
-      // A Platform Admin holds no ORDINARY per-hospital role, so
-      // resolveTenantContext() rejects them here before the permission
-      // matrix is ever consulted - even for actions the matrix already
-      // grants them outright (hospital:read, hospital:configure,
-      // hospital:manage_users - onboarding/admin metadata, not clinical
-      // content). That's a real gap, not a security feature: a Platform
-      // Admin literally could not open a hospital's own Overview page.
-      // Only a plain `true` grant gets this fallback - "audited" grants
-      // like patient:view_clinical still require the separate, reasoned
-      // resolvePlatformAdminAccess() path (doc 02 R3), never this one.
-      const appUser = await getCurrentAppUser();
-      if (appUser?.isPlatformAdmin && can("PLATFORM_ADMIN", action) === true) {
-        return { hospitalId, userId: appUser.id, role: "PLATFORM_ADMIN" };
-      }
+      // Deliberate, doc 02 R3, tests/rbac.test.ts: global admin status
+      // alone never grants guard() access to a hospital the Platform Admin
+      // holds no ordinary role at - see guardOrPlatformAdmin() below for
+      // the opt-in fallback a specific route can use instead.
       log("warn", "auth.denied", { action, hospitalId, reason: "no_hospital_access" });
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
@@ -64,6 +54,28 @@ export async function guard(hospitalId: string, action: Action): Promise<TenantC
   }
 
   return ctx;
+}
+
+/**
+ * Like guard(), but a Platform Admin who holds no ordinary role at this
+ * hospital falls back to PLATFORM_ADMIN access for actions the permission
+ * matrix already grants them outright (a plain `true` grant only - e.g.
+ * hospital:read). guard() itself never does this fallback (doc 02 R3,
+ * enforced by tests/rbac.test.ts) since "audited"/"limited" grants like
+ * patient:view_clinical still require the separate, reasoned
+ * resolvePlatformAdminAccess() path. Use this only for routes that are
+ * legitimately meant to be viewable platform-wide, like the hospital
+ * detail page every ordinary role can already open for their own hospital.
+ */
+export async function guardOrPlatformAdmin(hospitalId: string, action: Action): Promise<TenantContext | Response> {
+  const gate = await guard(hospitalId, action);
+  if (!(gate instanceof Response) || gate.status !== 404) return gate;
+
+  const appUser = await getCurrentAppUser();
+  if (appUser?.isPlatformAdmin && can("PLATFORM_ADMIN", action) === true) {
+    return { hospitalId, userId: appUser.id, role: "PLATFORM_ADMIN" };
+  }
+  return gate;
 }
 
 /**
